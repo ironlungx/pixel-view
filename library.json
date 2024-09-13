@@ -1,0 +1,26 @@
+{
+  "name": "pixelView",
+  "version": "1.0.0",
+  "description": "A minimal and bloat free GUI library for 128x64 OLEDs",
+  "keywords": "oled, u8g2, arduino, esp32, display, graphics",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/ironlungx/pixel-view"
+  },
+  "authors":
+  [
+    {
+      "name": "IronLung",
+      "maintainer": true
+    }
+  ],
+  "dependencies": [
+    "olikraus/u8g2"
+  ],
+  "frameworks": "arduino",
+  "platforms": "atmelavr, espressif32",
+  "headers" : [
+    "pixelView.h"
+  ]
+}
