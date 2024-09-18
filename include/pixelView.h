@@ -10,12 +10,15 @@ using std::function;
 #define PAGE_NUM_AND_ARROW_NAV 3
 #define PAGE_ARROW_NAV 4
 
+#define LIST_NONE 0
+#define LIST_BULLET_POINT 1
+#define LIST_NUMBER 2
+
 /* IDEAS:
  *  - Tabbed navigations
  *  - Sliders
  *  - Progress bar
- *  -
- *
+ *  - Radio buttons
  * */
 
 /**
@@ -57,7 +60,7 @@ public:
    *
    * @note Ensure that the font is loaded before calling this function.
    */
-  void wordWrap(int xloc, int yloc, const char *text);
+  void wordWrap(int xloc, int yloc, const char *text, bool maintainX = false);
 
   /// @brief Shows a dialog box with two buttons: Yes and No
   ///
@@ -100,10 +103,13 @@ public:
      * @param defaultText Default text that is displayed on the keyboard. It must be cleared manually to
      * @return
      */
-    String openKeyboard(const String &message = "", bool isEmptyAllowed = false, const String &defaultText = "");
+    String fullKeyboard(const String &message = "", bool isEmptyAllowed = false, const String &defaultText = "");
+    String numPad(const char* defaultText, bool isEmptyAllowed);
 
   private:
     void renderKeyboard(int pX, int pY, const String &text);
+
+    const char *numpad[4][3] = {{"1", "2", "3"}, {"4", "5", "6"}, {"7", "8", "9"}, {"\u0087", "0", "<"}};
 
     const char *letters[4][10] = {{"q", "w", "e", "r", "t", "y", "u", "i", "o", "p"},
                                   {"a", "s", "d", "f", "g", "h", "j", "k", "l", "<ques>"},
@@ -144,6 +150,21 @@ public:
    * |             ●○○○              |    |             ○●○○              |
    * +-------------------------------+    +-------------------------------+
    *
+   * +-------------------------------+    +-------------------------------+
+   * |  Page 1                       |    |  Page 2                       |
+   * |                               |    |                               |
+   * |                               |    |                               |
+   * |                               |    |                               |
+   * |            <  >               |    |             < >               |
+   * +-------------------------------+    +-------------------------------+
+   *
+   * +-------------------------------+    +-------------------------------+
+   * |  Page 1                       |    |  Page 2                       |
+   * |                               |    |                               |
+   * |                               |    |                               |
+   * |                               |    |                               |
+   * |          < 1 of 2 >           |    |          < 2 of 2>            |
+   * +-------------------------------+    +-------------------------------+
    */
   class Pager {
   private:
@@ -164,14 +185,17 @@ public:
     Pager(int numFuncs, std::function<void(U8G2, std::function<int(void)>)> *displayFunctions,
           const int indicatorType = PAGE_DOT_NAV);
 
-    // void changeIndicatorType(const int indicatorType);
-
     /**
      * @brief Render the frame and manage input
      */
     void render();
   };
 
+  /**
+   * @class menuItem
+   * @brief Contains a name and a 16x16 icon
+   *
+   */
   struct menuItem {
     String name;
     const unsigned char *icon;
@@ -195,4 +219,17 @@ public:
    * @return The selected option
    */
   const char *subMenu(const char *header, const char *items[], unsigned int numItems);
+
+  /**
+   * @brief Shows a list of items that you can scroll through
+   *
+   * @param header The header/title that remains static and doesnt scroll
+   * @param iconBitmap A 16x16 icon, pass NULL to use no icon
+   * @param items The list of items to be displayed
+   * @param numItems Number of items in the list
+   * @param displayType Can be Bullet points, numbers or nothing
+   * @param font the font to use
+   */
+  void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], unsigned int numItems,
+                   int displayType = LIST_NUMBER, const uint8_t font[] = u8g2_font_6x12_tr);
 };
