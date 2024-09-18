@@ -16,10 +16,11 @@ PixelView::PixelView(U8G2 *display, function<int(void)> inputFunction, function<
   doDelay = delayer;
 }
 
-void PixelView::wordWrap(int xloc, int yloc, const char *text) {
+void PixelView::wordWrap(int xloc, int yloc, const char *text, bool maintainX) {
   int dspwidth = this->u8g2->getDisplayWidth(); // display width in pixels
   int strwidth = 0;                             // string width in pixels
   char glyph[2];
+  int orignalX = xloc;
   glyph[1] = 0;
   for (const char *ptr = text, *lastblank = NULL; *ptr; ++ptr) {
     while (xloc == 0 && (*text == ' ' || *text == '\n'))
@@ -27,7 +28,7 @@ void PixelView::wordWrap(int xloc, int yloc, const char *text) {
         ++ptr; // skip blanks and newlines at the left edge
 
     glyph[0] = *ptr;
-    strwidth += this->u8g2->getStrWidth(glyph); // accumulate the pixel width
+    strwidth += this->u8g2->getUTF8Width(glyph); // accumulate the pixel width
 
     if (*ptr == ' ')
       lastblank = ptr; // remember where the last blank was
@@ -40,11 +41,11 @@ void PixelView::wordWrap(int xloc, int yloc, const char *text) {
       // print to just before the last blank, or to just before where we got to
       while (text < (lastblank ? lastblank : ptr)) {
         glyph[0] = *text++;
-        xloc += this->u8g2->drawStr(xloc, yloc, glyph);
+        xloc += this->u8g2->drawUTF8(xloc, yloc, glyph);
       }
       strwidth -= xloc - starting_xloc;       // account for what we printed
       yloc += this->u8g2->getMaxCharHeight(); // advance to the next line
-      xloc = 0;
+      xloc = maintainX ? orignalX : 0;
       lastblank = NULL;
     }
   }
@@ -311,7 +312,90 @@ void PixelView::Keyboard::renderKeyboard(int pX, int pY, const String &text) {
   u8g2->sendBuffer();
 }
 
-String PixelView::Keyboard::openKeyboard(const String &message, bool isEmptyAllowed, const String &defaultText) {
+String PixelView::Keyboard::numPad(const char *defaultText, bool isEmptyAllowed) {
+  short indexX = 0;
+  short indexY = 0;
+  String text = defaultText;
+
+  /*
+   * x = 12i+4
+   * y = 12i+7
+   */
+
+  while (true) {
+    u8g2->clearBuffer();
+    u8g2->setFontMode(1);
+    u8g2->setBitmapMode(1);
+    u8g2->setFont(u8g2_font_profont12_tf);
+    for (int i = 0; i <= 3; i++) {
+      for (int j = 0; j <= 2; j++) {
+        u8g2->drawUTF8((j + 1) * 12 - 4, (i + 1) * 12 + 7, numpad[i][j]);
+      }
+    }
+
+    u8g2->drawRFrame(4, 8, 37, 50, 0);
+    u8g2->setFont(u8g2_font_haxrcorp4089_tr);
+    this->p.wordWrap(50, 21, text.c_str(), true);
+
+    u8g2->setDrawColor(2);
+    u8g2->drawBox((indexX + 1) * 12 - 4 - 2, ((indexY + 1) * 12 + 7 - 9), 9, 10);
+    u8g2->sendBuffer();
+
+    int action = doInput();
+    if (action == ACTION_UP) {
+      indexY = max(0, indexY - 1);
+      while (doInput() != ACTION_NONE)
+        ;
+    }
+    if (action == ACTION_DOWN) {
+      int newY = min(3, indexY + 1);
+      if (strcmp(numpad[newY][indexX], " ") > 0)
+        indexY = newY;
+
+      while (doInput() != ACTION_NONE)
+        ;
+    }
+    if (action == ACTION_LEFT) {
+      // indexX = max(0, indexX - 1);
+      int newX = max(0, indexX - 1);
+
+      if (strcmp(numpad[indexY][newX], " ") > 0)
+        indexX = newX;
+
+      while (doInput() != ACTION_NONE)
+        ;
+    }
+    if (action == ACTION_RIGHT) {
+      indexX = min(2, indexX + 1);
+      while (doInput() != ACTION_NONE)
+        ;
+    }
+    if (action == ACTION_SEL) {
+      if (strcmp(numpad[indexY][indexX], "\u0087") == 0) {
+        if ((text.length() <= 0) && (isEmptyAllowed == false)) {
+          p.showMessage("Error: Cannot be empty");
+          goto skip_append;
+        } else {
+          break;
+        }
+      }
+      if (strcmp(numpad[indexY][indexX], "<") == 0) {
+        text.remove(text.length() - 1);
+      } else {
+        text += numpad[indexY][indexX];
+      }
+    }
+  skip_append:
+    Serial.println(text);
+    while (doInput() != ACTION_NONE) {
+      doDelay(50);
+    }
+    doDelay(50);
+  }
+  return text;
+}
+
+String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllowed, const String &defaultText) {
   while (doInput() != ACTION_NONE)
     ;
   if (message.length() != 0)
@@ -460,7 +544,6 @@ PixelView::Pager::Pager(int numFuncs, std::function<void(U8G2, std::function<int
   this->indicator = indicatorType;
 }
 
-
 void PixelView::Pager::render() {
   u8g2->clearBuffer();
   displayFunctions[index](*u8g2, doInput);
@@ -546,7 +629,7 @@ static const unsigned char bitmap_sel_outline[] U8X8_PROGMEM = {
     0xfc, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x07, 0xf8, 0xff, 0xff,
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x03};
 
-static const unsigned char bitmap_scrollbar_background[] U8X8_PROGMEM = {
+static const unsigned char bitmap_scrollbar_background_full[] U8X8_PROGMEM = {
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40,
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40,
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40,
@@ -620,7 +703,7 @@ PixelView::menuItem PixelView::menu(menuItem items[], unsigned int numItems) {
     u8g2->drawStr(25, 59, items[nextItem].name.c_str());
 
     u8g2->setDrawColor(1);
-    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background);
+    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
     u8g2->drawRBox(125, 64 / numItems * itemSelected, 3, 64 / numItems, 1);
 
     u8g2->sendBuffer();
@@ -673,7 +756,7 @@ const char *PixelView::subMenu(const char *header, const char *items[], unsigned
     // u8g2->setBitmapMode(1);
     u8g2->setDrawColor(1);
 
-    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background);
+    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
 
     int scrollbarH = max(1, (int)(64 / numItems));
     int scrollbarY;
@@ -699,4 +782,109 @@ const char *PixelView::subMenu(const char *header, const char *items[], unsigned
 
     doDelay(50);
   }
+}
+void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[],
+                            unsigned int numItems, int displayType, const uint8_t font[]) {
+
+  unsigned int offset = 0; // Offset for scrolling
+  int displayHeight = u8g2->getDisplayHeight();
+
+  u8g2->setFont(font);
+  int fontHeight = u8g2->getMaxCharHeight();
+
+  // Reserve space for the header and recalculate visible items
+  int headerHeight = u8g2->getMaxCharHeight();   // Assuming header takes up one line
+  int listHeight = displayHeight - headerHeight; // List area excluding the header
+  int visibleItems = listHeight / fontHeight;    // How many list items fit below the header
+
+  // Adjust visibleItems if there are fewer items than what can fit on the screen
+  if (visibleItems > numItems) {
+    visibleItems = numItems;
+  }
+
+  do {
+    u8g2->clearBuffer(); // Clear the screen buffer
+    u8g2->setFont(u8g2_font_helvB08_tr);
+
+    // Draw the header at the top
+    int headerWidth = u8g2->getUTF8Width(header);
+
+    int headerX;
+    if (iconBitmap != NULL)
+      headerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(header))) / 2;
+    else
+      headerX = ((u8g2->getDisplayWidth() - (u8g2->getUTF8Width(header))) / 2) - 6;
+
+    u8g2->drawStr(headerX + 2, headerHeight,
+                  header); // Draw header at the top
+
+    u8g2->setDrawColor(2);
+    u8g2->drawRBox(headerX, 2, headerWidth + 4, headerHeight + 0, 0); // Draw background for header
+    u8g2->setDrawColor(1);
+    if (iconBitmap != NULL)
+      u8g2->drawXBMP(headerX - 16 - 4, 0, 16, 16, iconBitmap);
+
+    u8g2->setFont(font);
+
+    // Scroll handle height and position calculation
+    int handleHeight = (64 * visibleItems) / numItems;
+    int handlePosition = ((64 * offset) / numItems);
+
+    // Draw scrollbar
+
+    // u8g2->drawRBox(123, 17, 3, 4, 1);
+    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
+    u8g2->drawRBox(125, handlePosition, 3, handleHeight, 1);
+
+    // Display list items below the header
+    for (int i = 0; i < visibleItems; i++) {
+      int itemIndex = i + offset; // Adjust for scrolling
+
+      if (itemIndex >= numItems) {
+        break; // Prevent out-of-bound access when at the last item
+      }
+
+      char buf[128];
+      switch (displayType) {
+      case LIST_NONE: {
+        strcpy(buf, items[itemIndex]);
+        break;
+      }
+      case LIST_BULLET_POINT: {
+        sprintf(buf, "-° %s", items[itemIndex]);
+        break;
+      }
+      case LIST_NUMBER: {
+        sprintf(buf, "%d. %s", itemIndex + 1, items[itemIndex]);
+      }
+      }
+
+      // Render list items below the header (start from headerHeight)
+      u8g2->drawStr(5, headerHeight + (i + 1) * u8g2->getMaxCharHeight(), buf); // Display each item
+    }
+
+    u8g2->sendBuffer(); // Send buffer to the display
+
+    // Handle input actions
+    int action = doInput();
+
+    if (action == ACTION_UP) {
+      if (offset > 0) {
+        offset--;
+      }
+    }
+    if (action == ACTION_DOWN) {
+      if ((numItems > visibleItems) && offset < (numItems - visibleItems)) {
+        offset++;
+      }
+    }
+    if (action == ACTION_SEL) {
+      while (doInput() == ACTION_SEL)
+        ; // Wait until selection is released
+      break;
+    }
+
+    while (doInput() != ACTION_NONE)
+      ; // Wait for no input
+  } while (true);
 }
