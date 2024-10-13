@@ -62,18 +62,19 @@ public:
    */
   void wordWrap(int xloc, int yloc, const char *text, bool maintainX = false);
 
-  /// @brief Shows a dialog box with two buttons: Yes and No
-  ///
-  /// @param message displayed on the screen before the buttons
-  /// @param defaultOption Default choice. False -> No; True -> Yes
-  ///
-  /// @return The selected option     False -> No; True -> Yes
+  /**
+   * @brief Shows a dialog box with two buttons: Yes and No
+   * @param message displayed on the screen before the buttons
+   * @param defaultOption Default choice. False -> No; True -> Yes
+
+   * @return The selected option     False -> No; True -> Yes
+   */
   bool confirmYN(const char *message = "Confirm?", bool defaultOption = false);
 
-  /////////////////////////////////////////////////////////////////////////////////////////
-  /// @brief Shows a dialog with one button: Yes
-  ///
-  /// @param message Displayed on the screen before the button
+  /**
+   * @brief Shows a dialog with one button: Yes
+   * @param message Displayed on the screen before the button
+   */
   void showMessage(const char *message);
 
   /**
@@ -104,7 +105,7 @@ public:
      * @return
      */
     String fullKeyboard(const String &message = "", bool isEmptyAllowed = false, const String &defaultText = "");
-    String numPad(const char* defaultText, bool isEmptyAllowed);
+    String numPad(const char *defaultText, bool isEmptyAllowed);
 
   private:
     void renderKeyboard(int pX, int pY, const String &text);
@@ -220,6 +221,33 @@ public:
    */
   const char *subMenu(const char *header, const char *items[], unsigned int numItems);
 
+  int gridMenu(const unsigned char *icon[], int numItems);
+
+  /**
+   * @brief Radio buttons!!!
+   *
+   * @param header String to display with a highlight behind it
+   * @param items An array of c-strs to show
+   * @param numItems Number of items in `items`
+   *
+   * @return the selected item
+   */
+  const char *radioSelect(const char *header, const char *items[], const unsigned int numItems);
+
+  struct checkBox {
+    const char *name;
+    bool isChecked;
+  };
+
+  /**
+   * @brief Check Boxes
+   *
+   * @param header String to display with highlight behind it
+   * @param items An array of `checkBox`
+   * @param numItems Number of items in the providied array
+   */
+  void checkBoxes(const char *header, checkBox items[], const unsigned int numItems);
+
   /**
    * @brief Shows a list of items that you can scroll through
    *
@@ -232,4 +260,7 @@ public:
    */
   void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], unsigned int numItems,
                    int displayType = LIST_NUMBER, const uint8_t font[] = u8g2_font_6x12_tr);
+
+  void progressBar(int progress, const char *header, const unsigned char *bitmap[] = NULL);
+  void progressCircle();
 };
