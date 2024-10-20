@@ -22,5 +22,11 @@
   "platforms": "atmelavr, espressif32",
   "headers" : [
     "pixelView.h"
+  ],
+  "examples": [
+    {
+      "name": "UI Components Demo",
+      "files": ["components.cpp"]
+    }
   ]
 }

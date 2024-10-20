@@ -102,13 +102,15 @@ bool PixelView::confirmYN(const char *message, bool defaultOption) {
     if (action != ACTION_SEL) {
       defaultOption = !defaultOption;
 
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
 
     } else {
       render2();
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
       render();
       this->doDelay(150);
       return defaultOption;
@@ -119,8 +121,9 @@ bool PixelView::confirmYN(const char *message, bool defaultOption) {
 
 void PixelView::showMessage(const char *message) {
 
-  while (doInput() != ACTION_NONE)
-    ;
+  while (doInput() != ACTION_NONE) {
+    doDelay(20);
+  }
 
   u8g2->clearBuffer();
 
@@ -129,8 +132,9 @@ void PixelView::showMessage(const char *message) {
   u8g2->drawButtonUTF8(58, 56, U8G2_BTN_INV | U8G2_BTN_SHADOW2 | U8G2_BTN_HCENTER | U8G2_BTN_BW1, 0, 2, 2, "Okay");
 
   u8g2->sendBuffer();
-  while (doInput() != ACTION_SEL)
-    ;
+  while (doInput() != ACTION_SEL) {
+    doDelay(20);
+  }
 
   u8g2->clearBuffer();
   u8g2->setFont(font);
@@ -140,8 +144,9 @@ void PixelView::showMessage(const char *message) {
   u8g2->sendBuffer();
 
   this->doDelay(150);
-  while (doInput() != ACTION_NONE)
-    ;
+  while (doInput() != ACTION_NONE) {
+    doDelay(20);
+  }
 
   u8g2->clearBuffer();
   u8g2->setFont(font);
@@ -298,10 +303,11 @@ void PixelView::Keyboard::renderKeyboard(int pX, int pY, const String &text) {
     displayText = displayText.substring(text.length() - 19, text.length());
   }
 
-  u8g2->setFont(u8g2_font_6x12_me);
+  u8g2->setFont(this->p.font);
   u8g2->drawStr(2, 7, displayText.c_str());
 
-  int cursorX = (u8g2->getMaxCharWidth() * displayText.length()) + 2;
+  // int cursorX = (u8g2->getMaxCharWidth() * displayText.length()) + 2;
+  int cursorX = (u8g2->getUTF8Width(displayText.c_str()) + 4);
   u8g2->drawVLine(cursorX, 0, 8);
 
   u8g2->sendBuffer();
@@ -339,15 +345,17 @@ String PixelView::Keyboard::numPad(const char *defaultText, bool isEmptyAllowed)
     int action = doInput();
     if (action == ACTION_UP) {
       indexY = max(0, indexY - 1);
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
     }
     if (action == ACTION_DOWN) {
       int newY = min(3, indexY + 1);
       if (strcmp(numpad[newY][indexX], " ") > 0) indexY = newY;
 
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
     }
     if (action == ACTION_LEFT) {
       // indexX = max(0, indexX - 1);
@@ -355,13 +363,15 @@ String PixelView::Keyboard::numPad(const char *defaultText, bool isEmptyAllowed)
 
       if (strcmp(numpad[indexY][newX], " ") > 0) indexX = newX;
 
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
     }
     if (action == ACTION_RIGHT) {
       indexX = min(2, indexX + 1);
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
     }
     if (action == ACTION_SEL) {
       if (strcmp(numpad[indexY][indexX], "\u0087") == 0) {
@@ -388,8 +398,9 @@ String PixelView::Keyboard::numPad(const char *defaultText, bool isEmptyAllowed)
 }
 
 String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllowed, const String &defaultText) {
-  while (doInput() != ACTION_NONE)
-    ;
+  while (doInput() != ACTION_NONE) {
+    doDelay(20);
+  }
   if (message.length() != 0) p.showMessage(message.c_str());
 
   String text = defaultText;
@@ -426,8 +437,9 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
     }
 
     if (action == ACTION_SEL) {
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
       if (strcmp(currentLayer[pointerY][pointerX], "<caps>") == 0) {
         if (!caps) currentLayer = capitalLetters;
         else currentLayer = letters;
@@ -481,10 +493,12 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
         p.wordWrap(2, 7, text.length() == 0 ? "No text input" : text.c_str());
         u8g2->sendBuffer();
 
-        while (doInput() != ACTION_SEL)
-          ;
-        while (doInput() != ACTION_NONE)
-          ;
+        while (doInput() != ACTION_SEL) {
+          doDelay(20);
+        }
+        while (doInput() != ACTION_NONE) {
+          doDelay(20);
+        }
 
         goto skip_append;
       }
@@ -552,7 +566,7 @@ void PixelView::Pager::render() {
     u8g2->drawStr(centerX, 64, buf);
     sprintf(buf, "< %d of %d >", index + 1, numFuncs);
     break;
-  };
+  }
   case PAGE_NUM_AND_ARROW_NAV: {
     char buf[64];
     sprintf(buf, "< %d of %d >", index + 1, numFuncs);
@@ -561,14 +575,14 @@ void PixelView::Pager::render() {
     u8g2->setFont(u8g2_font_6x12_tr);
     u8g2->drawStr(centerX, 64, buf);
     break;
-  };
+  }
   case PAGE_ARROW_NAV: {
     const char *buf = "<      >";
     int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
     u8g2->drawStr(centerX, 64, buf);
     break;
   }
-  };
+  }
 
   u8g2->sendBuffer();
 
@@ -577,13 +591,13 @@ void PixelView::Pager::render() {
   if ((input == ACTION_LEFT) || (input == ACTION_UP)) {
     index--;
     while (doInput() != ACTION_NONE)
-      vTaskDelay(pdMS_TO_TICKS(100));
+      doDelay(100);
   }
 
   if ((input == ACTION_RIGHT) || (input == ACTION_DOWN)) {
     index++;
     while (doInput() != ACTION_NONE)
-      vTaskDelay(pdMS_TO_TICKS(100));
+      doDelay(100);
   }
 
   if (index < 0) {
@@ -647,10 +661,10 @@ PixelView::menuItem PixelView::menu(menuItem items[], unsigned int numItems) {
     }
 
     if (input == ACTION_SEL) {
-      return items[itemSelected];
       while (doInput() != ACTION_NONE) {
         doDelay(70);
       }
+      return items[itemSelected];
     }
 
     prevItem = itemSelected - 1;
@@ -720,10 +734,10 @@ const char *PixelView::subMenu(const char *header, const char *items[], unsigned
     }
 
     if (input == ACTION_SEL) {
-      return items[itemSelected];
       while (doInput() != ACTION_NONE) {
         doDelay(70);
       }
+      return items[itemSelected];
     }
     prevItem = itemSelected - 1;
     if (prevItem < 0) prevItem = numItems - 1;
@@ -743,7 +757,7 @@ const char *PixelView::subMenu(const char *header, const char *items[], unsigned
     if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
     else scrollbarY = 64 / numItems * itemSelected;
 
-    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 1);
+    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 0);
 
     u8g2->setFont(u8g2_font_helvB08_tr);
     u8g2->drawStr(1, 11, header);
@@ -893,8 +907,9 @@ const char *PixelView::radioSelect(const char *header, const char *items[], cons
       }
       break;
     case ACTION_SEL:
-      while (doInput() != ACTION_NONE)
-        ;
+      while (doInput() != ACTION_NONE) {
+        doDelay(20);
+      }
       return items[selected]; // Return the selected item
     }
 
@@ -1019,7 +1034,7 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned 
 }
 
 void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[],
-                            unsigned int numItems, int displayType, const uint8_t font[]) {
+                            unsigned int numItems, int displayType) {
 
   unsigned int offset = 0; // Offset for scrolling
   int displayHeight = u8g2->getDisplayHeight();
@@ -1116,8 +1131,9 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
       break;
     }
 
-    while (doInput() != ACTION_NONE)
-      ; // Wait for no input
+    while (doInput() != ACTION_NONE) {
+      doDelay(20);
+    } // Wait for no input
   } while (true);
 }
 
@@ -1149,15 +1165,36 @@ void PixelView::progressBar(int progress, const char *header, const unsigned cha
   u8g2->drawStr(x, 30, buf);
   u8g2->sendBuffer();
 }
-void PixelView::progressCircle() {
+
+void PixelView::progressCircle(int frame) {
   u8g2->clearBuffer();
-  u8g2->drawEllipse(63, 20, 2, 2);
-  u8g2->drawEllipse(52, 24, 2, 2);
-  u8g2->drawEllipse(74, 24, 2, 2);
-  u8g2->drawEllipse(51, 49, 2, 2);
-  u8g2->drawEllipse(46, 37, 2, 2);
-  u8g2->drawEllipse(80, 37, 2, 2);
-  u8g2->drawEllipse(74, 49, 2, 2);
-  u8g2->drawFilledEllipse(63, 54, 3, 3);
+
+  // Define the positions of all ellipses in circular order
+  const int ellipses[][2] = {
+      {63, 20}, // Top
+      {74, 24}, // Upper right
+      {80, 37}, // Middle right
+      {74, 49}, // Lower right
+      {63, 54}, // Bottom
+      {51, 49}, // Lower left
+      {46, 37}, // Middle left
+      {52, 24}  // Upper left
+  };
+  const int numEllipses = 8;
+
+  // Calculate which ellipse to fill based on the frame
+  int filledEllipseIndex = frame % numEllipses;
+
+  // Draw all ellipses
+  for (int i = 0; i < numEllipses; i++) {
+    if (i == filledEllipseIndex) {
+      // Fill only the current ellipse
+      u8g2->drawFilledEllipse(ellipses[i][0], ellipses[i][1], 3, 3);
+    } else {
+      // Draw other ellipses as outlines
+      u8g2->drawEllipse(ellipses[i][0], ellipses[i][1], 2, 2);
+    }
+  }
+
   u8g2->sendBuffer();
 }

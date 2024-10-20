@@ -259,8 +259,8 @@ public:
    * @param font the font to use
    */
   void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], unsigned int numItems,
-                   int displayType = LIST_NUMBER, const uint8_t font[] = u8g2_font_6x12_tr);
+                   int displayType = LIST_NUMBER);
 
   void progressBar(int progress, const char *header, const unsigned char *bitmap[] = NULL);
-  void progressCircle();
+  void progressCircle(int frame);
 };
