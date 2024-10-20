@@ -21,7 +21,7 @@ lib_deps = https://github.com/ironlungx/pixel-view
 4. Check boxes
 5. Menu
 6. Progress Bars:
-7. Dialog Boxes:
+7. Dialog Boxes
 ---
 
 # Library Documentation
