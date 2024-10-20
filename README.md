@@ -1,5 +1,18 @@
 # Pixel View
-> A library providing UI elements for **128x64** monochrome OLED displays. 
+> A lightweight GUI library for monochrome 128x64 displays to be used with Arduino. 
+
+## Installation
+### Platform IO
+1. Edit your `platform.ini` and include the following:
+
+```ini
+lib_deps = https://github.com/ironlungx/pixel-view
+```
+
+2. `pio run`
+
+### Arduino IDE
+**TODO**: Add support for Arduino IDE
 
 ## Elements Provided 
 1. Keyboard:
@@ -7,13 +20,8 @@
 3. Radio buttons
 4. Check boxes
 5. Menu
-5. Progress Bars:
-  - Circular Loading
-  - Linear Progress Bar
-
-6. Dialog Boxes:
-  - Confirmation
-  - Message Box
+6. Progress Bars:
+7. Dialog Boxes:
 ---
 
 # Library Documentation
@@ -219,12 +227,5 @@ Displays a horizontal progress bar.
 - **frame**: The current frame in the circular progress animation.
 
 Displays a circular loading animation.
-
----
-
-## Enums
-
-- **PAGE_DOT_NAV**: Dots as a page indicator.
-- **LIST_NUMBER**: Displays a list with numbers.
 
 ---
