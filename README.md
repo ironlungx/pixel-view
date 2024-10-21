@@ -26,6 +26,51 @@ lib_deps = https://github.com/ironlungx/pixel-view
 
 # Library Documentation
 
+## Simple Hello World
+
+```cpp
+#include <pixelView.h>
+#include <U8g2lib.h>
+
+U8G2 u8g2; ////// REPLACE WITH YOUR DISPLAY
+
+void doDelay(int n) {
+  // Replace with vTaskDelay if using FreeRTOS
+  delay(n);
+}
+
+PixelView pv(&u8g2, sendInput, doDelay, u8g2_font_haxrcorp4089_tr);
+
+// A simple function for input management
+// 5 button navigation
+//
+// This function must return one of the following:
+//      - ACTION_UP
+//      - ACTION_DOWN
+//      - ACTION_LEFT
+//      - ACTION_RIGHT
+//      - ACTION_SEL
+
+int sendInput() {
+  if (digitalRead(BTN_UP))         return ACTION_UP;
+  else if (digitalRead(BTN_DOWN))  return ACTION_DOWN;
+  else if (digitalRead(BTN_LEFT))  return ACTION_LEFT;
+  else if (digitalRead(BTN_RIGHT)) return ACTION_RIGHT;
+
+  if (digitalRead(BTN_SEL) == LOW) return ACTION_SEL;
+
+  return ACTION_NONE;
+}
+
+void setup() {
+  u8g2.begin(); 
+}
+
+void loop() {
+  pv.showMessage("Hello World!!");
+}
+```
+
 ## Overview
 
 **PixelView** is a library designed for **128x64 monochrome OLED displays**. It provides various UI elements such as keyboards, menus, progress bars, and more.
@@ -56,7 +101,8 @@ PixelView(U8G2 *display, function<int(void)> inputFunction, function<void(int)> 
 - **text**: The text to be rendered.
 - **maintainX**: If true, the X location remains unchanged between lines.
   
-This method renders text with word wrapping enabled.
+This method renders text with word wrapping.
+Set the font before calling the function
 
 ##### `bool confirmYN(const char *message = "Confirm?", bool defaultOption = false)`
 
@@ -132,7 +178,7 @@ Renders the current page and handles input.
 
 ### Menu System
 
-The library includes two types of menus: one with icons and one without.
+The library includes three types of menus: one with icons, one without icons, and one with just icons.
 
 ![Icon Menu](images/menu.jpg)
 
@@ -142,6 +188,7 @@ The library includes two types of menus: one with icons and one without.
 - **numItems**: Number of items in the menu.
 
 Displays a menu with icons and returns the selected `menuItem`.
+Use `menuItem::name` to get the selected item's name
 
 ![Submenu](images/subMenu.jpg)
 
