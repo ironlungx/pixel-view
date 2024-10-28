@@ -52,6 +52,20 @@ void PixelView::wordWrap(int xloc, int yloc, const char *text, bool maintainX) {
   }
 }
 
+void PixelView::accentText(int x, int y, const char *text) {
+  u8g2->setFont(u8g2_font_helvB08_tr);
+
+  int headerWidth = u8g2->getUTF8Width(text);
+  int headerHeight = u8g2->getMaxCharHeight(); // Assuming header takes up one line
+
+  u8g2->drawStr(x, y, text); // Draw header at the top
+
+  u8g2->setDrawColor(2);
+  u8g2->drawRBox(x - 2, y - headerHeight + 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
+  u8g2->setDrawColor(1);
+
+}
+
 bool PixelView::confirmYN(const char *message, bool defaultOption) {
   while (this->doInput() != ACTION_NONE)
     ;
