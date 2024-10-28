@@ -63,7 +63,8 @@ public:
   void wordWrap(int xloc, int yloc, const char *text, bool maintainX = false);
 
 
-  void accentText(int x, int y, const char *text);
+  void accentText(int x, int y, const char *text, const uint8_t font[]);
+
   /**
    * @brief Shows a dialog box with two buttons: Yes and No
    * @param message displayed on the screen before the buttons

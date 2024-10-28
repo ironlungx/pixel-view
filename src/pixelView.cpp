@@ -52,16 +52,22 @@ void PixelView::wordWrap(int xloc, int yloc, const char *text, bool maintainX) {
   }
 }
 
-void PixelView::accentText(int x, int y, const char *text) {
-  int headerWidth = u8g2->getUTF8Width(text);
-  int headerHeight = u8g2->getMaxCharHeight(); // Assuming header takes up one line
+void PixelView::accentText(int x, int y, const char *text, const uint8_t font[]) {
+  u8g2->setFont(font);
 
-  u8g2->drawStr(x, y, text); // Draw header at the top
+  u8g2_uint_t ascent = u8g2->getAscent();
+  u8g2_uint_t descent = u8g2->getDescent();
+  u8g2_uint_t headerWidth = u8g2->getUTF8Width(text);
+  u8g2_uint_t headerHeight = ascent - descent;
 
-  u8g2->setDrawColor(2);
-  u8g2->drawRBox(x - 2, y - headerHeight + 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
   u8g2->setDrawColor(1);
+  u8g2->drawUTF8(x, y, text);
 
+  // Draw background for header
+  u8g2->setDrawColor(2);
+  u8g2->drawRBox(x - 2, y - ascent - 3, headerWidth + 4, headerHeight + 2, 0);
+
+  u8g2->setDrawColor(1);
 }
 
 bool PixelView::confirmYN(const char *message, bool defaultOption) {
