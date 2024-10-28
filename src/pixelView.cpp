@@ -562,35 +562,35 @@ void PixelView::Pager::render() {
 
   switch (this->indicator) {
   case PAGE_DOT_NAV: {
+    u8g2->setFont(u8g2_font_unifont_t_75);
     String str;
     for (int i = 0; i < numFuncs; i++)
       str += ((i == index) ? "●" : "○");
 
     int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(str.c_str()))) / 2;
-    u8g2->setFont(u8g2_font_unifont_t_75);
     u8g2->drawUTF8(centerX, 64, str.c_str());
     break;
   }
   case PAGE_NUM_NAV: {
+    u8g2->setFont(u8g2_font_6x12_tr);
     char buf[64];
     sprintf(buf, "%d of %d", index + 1, numFuncs);
     int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
 
-    u8g2->setFont(u8g2_font_6x12_tr);
     u8g2->drawStr(centerX, 64, buf);
-    sprintf(buf, "< %d of %d >", index + 1, numFuncs);
     break;
   }
   case PAGE_NUM_AND_ARROW_NAV: {
+    u8g2->setFont(u8g2_font_6x12_tr);
     char buf[64];
     sprintf(buf, "< %d of %d >", index + 1, numFuncs);
     int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
 
-    u8g2->setFont(u8g2_font_6x12_tr);
     u8g2->drawStr(centerX, 64, buf);
     break;
   }
   case PAGE_ARROW_NAV: {
+    u8g2->setFont(u8g2_font_6x12_tr);
     const char *buf = "<      >";
     int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
     u8g2->drawStr(centerX, 64, buf);
