@@ -794,6 +794,75 @@ const char *PixelView::subMenu(const char *header, const char *items[], unsigned
   }
 }
 
+const String PixelView::subMenu(const char *header, const String items[], unsigned int numItems) {
+  int itemSelected = 0;
+  int prevItem;
+  int nextItem;
+
+  while (true) {
+
+    int input = doInput();
+    if (input == ACTION_UP) {
+
+      itemSelected--;
+      if (itemSelected < 0) itemSelected = numItems - 1;
+      while (doInput() != ACTION_NONE) {
+        doDelay(70);
+      }
+    }
+
+    if (input == ACTION_DOWN) {
+      itemSelected++;
+      if (itemSelected >= numItems) itemSelected = 0;
+      while (doInput() != ACTION_NONE) {
+        doDelay(70);
+      }
+      while (doInput() != ACTION_NONE)
+        ;
+    }
+
+    if (input == ACTION_SEL) {
+      while (doInput() != ACTION_NONE) {
+        doDelay(70);
+      }
+      return items[itemSelected];
+    }
+    prevItem = itemSelected - 1;
+    if (prevItem < 0) prevItem = numItems - 1;
+
+    nextItem = itemSelected + 1;
+    if (nextItem >= numItems) nextItem = 0;
+
+    u8g2->clearBuffer();
+    u8g2->setFontMode(1);
+    // u8g2->setBitmapMode(1);
+    u8g2->setDrawColor(1);
+
+    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
+
+    int scrollbarH = max(1, (int)(64 / numItems));
+    int scrollbarY;
+    if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
+    else scrollbarY = 64 / numItems * itemSelected;
+
+    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 0);
+
+    u8g2->setFont(u8g2_font_helvB08_tr);
+    u8g2->drawStr(1, 11, header);
+
+    u8g2->setFont(u8g2_font_helvR08_tr);
+    u8g2->drawStr(8, 28, items[prevItem].c_str());
+    u8g2->drawStr(8, 44, items[itemSelected].c_str());
+    u8g2->drawStr(8, 60, items[nextItem].c_str());
+
+    u8g2->setDrawColor(2);
+    u8g2->drawRBox(2, 33, 121, 15, 1);
+    u8g2->sendBuffer();
+    u8g2->setDrawColor(1);
+
+    doDelay(50);
+  }
+}
 int PixelView::gridMenu(const unsigned char *icon[], int numItems) {
   int selected = 0;
   int itemsPerRow = 6;                                   // Adjust based on your layout

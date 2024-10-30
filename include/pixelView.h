@@ -223,6 +223,7 @@ public:
    * @return The selected option
    */
   const char *subMenu(const char *header, const char *items[], unsigned int numItems);
+  const String subMenu(const char *header, const String items[], unsigned int numItems);
 
   int gridMenu(const unsigned char *icon[], int numItems);
 
