@@ -1051,6 +1051,109 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned 
   }
 }
 
+void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const String items[],
+                            unsigned int numItems, int displayType) {
+
+  unsigned int offset = 0; // Offset for scrolling
+  int displayHeight = u8g2->getDisplayHeight();
+
+  u8g2->setFont(u8g2_font_helvB08_tr);
+  int fontHeight = u8g2->getMaxCharHeight();
+
+  // Reserve space for the header and recalculate visible items
+  int headerHeight = u8g2->getMaxCharHeight();   // Assuming header takes up one line
+  int listHeight = displayHeight - headerHeight; // List area excluding the header
+  int visibleItems = listHeight / fontHeight;    // How many list items fit below the header
+
+  // Adjust visibleItems if there are fewer items than what can fit on the screen
+  if (visibleItems > numItems) {
+    visibleItems = numItems;
+  }
+
+  do {
+    u8g2->clearBuffer(); // Clear the screen buffer
+    u8g2->setFont(u8g2_font_helvB08_tr);
+
+    // Draw the header at the top
+    int headerWidth = u8g2->getUTF8Width(header);
+
+    int headerX;
+    if (iconBitmap != NULL) headerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(header))) / 2;
+    else headerX = ((u8g2->getDisplayWidth() - (u8g2->getUTF8Width(header))) / 2) - 6;
+
+    u8g2->drawStr(headerX + 2, headerHeight,
+                  header); // Draw header at the top
+
+    u8g2->setDrawColor(2);
+    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
+    u8g2->setDrawColor(1);
+    if (iconBitmap != NULL) u8g2->drawXBMP(headerX - 16 - 2, 0, 16, 16, iconBitmap);
+
+    u8g2->setFont(font);
+
+    // Scroll handle height and position calculation
+    int handleHeight = (64 * visibleItems) / numItems;
+    int handlePosition = ((64 * offset) / numItems);
+
+    // Draw scrollbar
+
+    // u8g2->drawRBox(123, 17, 3, 4, 1);
+    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
+    u8g2->drawRBox(125, handlePosition, 3, handleHeight, 1);
+
+    // Display list items below the header
+    for (int i = 0; i < visibleItems; i++) {
+      int itemIndex = i + offset; // Adjust for scrolling
+
+      if (itemIndex >= numItems) {
+        break; // Prevent out-of-bound access when at the last item
+      }
+
+      char buf[128];
+      switch (displayType) {
+      case LIST_NONE: {
+        strcpy(buf, items[itemIndex].c_str());
+        break;
+      }
+      case LIST_BULLET_POINT: {
+        sprintf(buf, "-° %s", items[itemIndex].c_str());
+        break;
+      }
+      case LIST_NUMBER: {
+        sprintf(buf, "%d. %s", itemIndex + 1, items[itemIndex].c_str());
+      }
+      }
+
+      // Render list items below the header (start from headerHeight)
+      u8g2->drawStr(5, headerHeight + (i + 1) * u8g2->getMaxCharHeight(), buf); // Display each item
+    }
+
+    u8g2->sendBuffer(); // Send buffer to the display
+
+    // Handle input actions
+    int action = doInput();
+
+    if (action == ACTION_UP) {
+      if (offset > 0) {
+        offset--;
+      }
+    }
+    if (action == ACTION_DOWN) {
+      if ((numItems > visibleItems) && offset < (numItems - visibleItems)) {
+        offset++;
+      }
+    }
+    if (action == ACTION_SEL) {
+      while (doInput() == ACTION_SEL)
+        ; // Wait until selection is released
+      break;
+    }
+
+    while (doInput() != ACTION_NONE) {
+      doDelay(20);
+    } // Wait for no input
+  } while (true);
+}
 void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[],
                             unsigned int numItems, int displayType) {
 

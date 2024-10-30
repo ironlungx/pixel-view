@@ -264,6 +264,9 @@ public:
   void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], unsigned int numItems,
                    int displayType = LIST_NUMBER);
 
+  void listBrowser(const char *header, const unsigned char iconBitmap[], const String items[], unsigned int numItems,
+                   int displayType = LIST_NUMBER);
+
   void progressBar(int progress, const char *header, const unsigned char *bitmap[] = NULL);
   void progressCircle(int frame);
 };
