@@ -600,6 +600,7 @@ void PixelView::Pager::render() {
     u8g2->drawStr(centerX, 64, buf);
     break;
   }
+  case PAGE_NONE_NAV: break;
   }
 
   u8g2->sendBuffer();
