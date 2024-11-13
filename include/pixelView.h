@@ -1,4 +1,5 @@
 #pragma once
+
 #include "actions.h"
 #include <Arduino.h>
 #include <U8g2lib.h>
@@ -9,6 +10,7 @@ using std::function;
 #define PAGE_NUM_NAV 2
 #define PAGE_NUM_AND_ARROW_NAV 3
 #define PAGE_ARROW_NAV 4
+#define PAGE_NONE_NAV 5
 
 #define LIST_NONE 0
 #define LIST_BULLET_POINT 1
@@ -269,5 +271,6 @@ public:
                    int displayType = LIST_NUMBER);
 
   void progressBar(int progress, const char *header, const unsigned char *bitmap[] = NULL);
+
   void progressCircle(int frame);
 };
