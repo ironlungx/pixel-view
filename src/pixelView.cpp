@@ -553,16 +553,36 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
   return text;
 }
 
-PixelView::Pager::Pager(int numFuncs, std::function<void(U8G2, std::function<int(void)>)> *displayFunctions,
+PixelView::Pager::Pager(PixelView *px, int numFuncs, std::function<int(U8G2, std::function<int(void)>)> *displayFunctions,
                         const int indicatorType) {
+  this->px = px;
   this->numFuncs = numFuncs;
   this->displayFunctions = displayFunctions;
   this->indicator = indicatorType;
 }
 
-void PixelView::Pager::render() {
+int PixelView::Pager::render() {
+  static bool navEnabled = true;
+
   u8g2->clearBuffer();
-  displayFunctions[index](*u8g2, doInput);
+  int returnVal = displayFunctions[index](*u8g2, doInput);
+
+  switch (returnVal) {
+  case PAGER_DISABLE_NAV: {
+    navEnabled = false;
+  }
+  case PAGER_ENABLE_NAV: {
+    navEnabled = true;
+  }
+  case PAGER_TOGGLE_NAV: {
+    navEnabled = !navEnabled;
+  }
+  }
+
+  if (!navEnabled) {
+    u8g2->sendBuffer();
+    return returnVal;
+  }
 
   switch (this->indicator) {
   case PAGE_DOT_NAV: {
@@ -600,7 +620,8 @@ void PixelView::Pager::render() {
     u8g2->drawStr(centerX, 64, buf);
     break;
   }
-  case PAGE_NONE_NAV: break;
+  case PAGE_NONE_NAV:
+    break;
   }
 
   u8g2->sendBuffer();
@@ -623,6 +644,18 @@ void PixelView::Pager::render() {
     index = numFuncs - 1; // Wrap around to the last element
   } else if (index >= numFuncs) {
     index = 0; // Wrap around to the first element
+  }
+
+  return returnVal;
+}
+
+void PixelView::Pager::loop(int delay) {
+  while (true) {
+    if (render() == PAGER_EXIT) {
+      break;
+    }
+
+    this->px->doDelay(delay);
   }
 }
 

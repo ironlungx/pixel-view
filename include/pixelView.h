@@ -6,21 +6,30 @@
 
 using std::function;
 
+// Pager Navigation types
 #define PAGE_DOT_NAV 1
 #define PAGE_NUM_NAV 2
 #define PAGE_NUM_AND_ARROW_NAV 3
 #define PAGE_ARROW_NAV 4
 #define PAGE_NONE_NAV 5
 
+// Pager Return codes
+#define PAGER_EXIT -1
+#define PAGER_CONTINUE 0
+#define PAGER_DISABLE_NAV 1
+#define PAGER_ENABLE_NAV 2
+#define PAGER_TOGGLE_NAV 3
+
+// List browser
 #define LIST_NONE 0
 #define LIST_BULLET_POINT 1
 #define LIST_NUMBER 2
 
+
 /* IDEAS:
- *  - Tabbed navigations
- *  - Sliders
- *  - Progress bar
- *  - Radio buttons
+ *    *None* as of now
+ *
+ *
  * */
 
 /**
@@ -63,7 +72,6 @@ public:
    * @note Ensure that the font is loaded before calling this function.
    */
   void wordWrap(int xloc, int yloc, const char *text, bool maintainX = false);
-
 
   void accentText(int x, int y, const char *text, const uint8_t font[]);
 
@@ -174,9 +182,10 @@ public:
    */
   class Pager {
   private:
-    std::function<void(U8G2, std::function<int(void)>)> *displayFunctions;
+    std::function<int(U8G2, std::function<int(void)>)> *displayFunctions;
     int numFuncs;
     int index = 0;
+    PixelView *px;
 
   public:
     int indicator;
@@ -185,16 +194,24 @@ public:
      *
      * @param numFuncs The number of functions in the functions array
      * @param displayFunctions An array of functions that render pages.
-     *                         Note that each function needs to return 0 by default
-     *                         TODO: Add a thing to capture input
+     *                         Note that each function needs to return PAGER_CONTINUE by default
+     *                         Each function can return PAGER_* macros to execute actions
+     *
      */
-    Pager(int numFuncs, std::function<void(U8G2, std::function<int(void)>)> *displayFunctions,
+    Pager(PixelView *px, int numFuncs, std::function<int(U8G2, std::function<int(void)>)> *displayFunctions,
           const int indicatorType = PAGE_DOT_NAV);
 
     /**
      * @brief Render the frame and manage input
+     * @returns the value returned by the currently rendering page
      */
-    void render();
+    int render();
+
+    /**
+     * @brief Loops till functions return PAGER_EXIT
+     * @param
+     * */
+    void loop(int delay = 20);
   };
 
   /**
