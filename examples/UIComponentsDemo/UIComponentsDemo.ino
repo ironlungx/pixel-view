@@ -1,19 +1,38 @@
-#include <Arduino.h>
+#include <Arduino.h>    // Not strictly needed, but it's good on platformIO based envs.
 #include <U8g2lib.h>
 
 #include <pixelView.h>
 
-#define FORMAT_LITTLEFS_IF_FAILED true
-
-#define JOY_Y 34
-#define JOY_X 35
-#define SEL 22
-
+// Macro to calculate lenght of an array, through   sizeof(array) / sizeof(array[0])
 #define LEN(array) ((int)sizeof(array) / (int)sizeof((array)[0]))
+
+// Joystick pins. Not necessary but change according to your pinout
+//    More info in `sendInput`
+//
+#define JOY_X 8
+#define JOY_Y 7
+#define SEL 6
+
+// The function that gets called to manage input. This function right
+// now is setup for a joystick and returns the ACTION_* macros depending
+// on what is happening
+//
+// This function WILL change based on your usecase. (eg. adapted to 5 button navigation)
+// The function must return one of the following values:
+//    - ACTION_DOWN
+//    - ACTION_UP
+//    - ACTION_LEFT
+//    - ACTION_RIGHT
+//
+//    - ACTION_SEL
+//    - ACTION_NONE       <- No action is currently happening
+//
 
 int sendInput() {
   int X = analogRead(JOY_X);
   int Y = analogRead(JOY_Y);
+
+  Serial.printf("%d %d\n", X, Y);
 
   // Assuming a center position of around 512 for both axes
   if (X < 10 && Y > 1750) {
@@ -34,84 +53,27 @@ int sendInput() {
   return ACTION_NONE;
 }
 
-U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE,
-                                        /* clock=*/33, /* data=*/25);
-PixelView pi(&u8g2, sendInput, [](int ms) { vTaskDelay(pdMS_TO_TICKS(ms)); });
+// The U8G2 constructor. THIS WILL CHANGE BASED ON YOUR USECASE
+// The library only works for FULL BUFFER MODE. This might change
+// in the future. I'll work on adding support for page buffer.
+//
+// Find your 128x64 display here: https://github.com/olikraus/u8g2/wiki/u8g2setupcpp
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
-// U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
+// The PixelView constructor. The only thing that will change is the doDelay parameter
+// In this case it is adapted to native Arduino Code. Therefore delay is passed as the
+// parameter.
+//
+// This will change, for example, on the ESP32 where you are on FreeRTOS and need to use vTaskDelay.
+// This is what it would look like:
+// Note doDelay is a lambda function
+PixelView pi(&u8g2, sendInput, [](int ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }, u8g2_font_haxrcorp4089_tr);
+//
+// You can also specify a font parameter. by default a 6x12 font is used.
+// PixelView pi(&u8g2, sendInput, delay);
 
-void f1(U8G2 u8g2, std::function<int(void)> doInput) {
-  u8g2.setFont(u8g2_font_helvR08_tr);
-
-  u8g2.drawStr(0, 12, "Hello World!");
-}
-
-void f2(U8G2 u8g2, std::function<int(void)> doInput) {
-  u8g2.setFont(u8g2_font_helvR08_tr);
-  u8g2.drawStr(0, 12, String(millis() / 1000).c_str());
-}
-
-void f3(U8G2 u8g2, std::function<int(void)> doInput);
-void f4(U8G2 u8g2, std::function<int(void)> doInput);
-std::function<void(U8G2, std::function<int(void)>)> functions[] = {f1, f2, f3, f4};
-PixelView::Pager p(LEN(functions), functions, PAGE_DOT_NAV);
-bool exitPager = false;
-
-void f3(U8G2 u8g2, std::function<int(void)> doInput) {
-  String buf = "Nav. Type:   ";
-  switch (p.indicator) {
-  case PAGE_NUM_NAV:
-    buf += "Number";
-    break;
-  case PAGE_ARROW_NAV:
-    buf += "Arrow";
-    break;
-  case PAGE_NUM_AND_ARROW_NAV:
-    buf += "Arrow + Number";
-    break;
-  case PAGE_DOT_NAV:
-    buf += "Dot";
-    break;
-  }
-
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(0, 12, buf.c_str());
-  u8g2.drawStr(0, 24, "Press OK to change");
-
-  if (doInput() == ACTION_SEL) {
-    const char *navTypes[] = {"Dot", "Number with arrow", "Number", "Arrow"};
-    while ((doInput() == ACTION_SEL))
-      ;
-
-    // pi.menu(i, 3);
-    const char *option = pi.radioSelect("Choose a nav. type", navTypes, 4);
-
-    if (strcmp(option, navTypes[0]) == 0) p.indicator = PAGE_DOT_NAV;
-
-    else if (strcmp(option, navTypes[1]) == 0) p.indicator = PAGE_NUM_AND_ARROW_NAV;
-
-    else if (strcmp(option, navTypes[2]) == 0) p.indicator = PAGE_NUM_NAV;
-
-    else if (strcmp(option, navTypes[3]) == 0) p.indicator = PAGE_ARROW_NAV;
-
-    while ((doInput() == ACTION_SEL))
-      ;
-  }
-}
-
-void f4(U8G2 u8g2, std::function<int(void)> doInput) {
-
-  u8g2.setFont(u8g2_font_helvR08_tr);
-  u8g2.drawStr(0, 12, "Press SELECT to exit");
-
-  if (doInput() == ACTION_SEL) {
-    exitPager = true;
-
-    while ((doInput() == ACTION_SEL))
-      ;
-  }
-}
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Just a wrapper around gridMenu function with all the bitmaps.
 void gridMenu() {
   // 'Battery_16x16', 16x16px
   const unsigned char icon_Battery_16x16[] PROGMEM = {0x00, 0x00, 0x00, 0x00, 0x80, 0x01, 0xc0, 0x03, 0x20, 0x04, 0x20,
@@ -158,19 +120,27 @@ void gridMenu() {
                                            icon_file_save_flipped_16x16, icon_flag_16x16,         icon_flower_16x16};
   pi.gridMenu(icon_allArray, icon_allArray_LEN);
 }
+// End of gridMenu
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// The main setup function
 void setup() {
-  Serial.begin(115200);
-  u8g2.begin();
+  Serial.begin(115200); // Start Serial communication
+  u8g2.begin();         // Init. the display
+
+  // Initialize Pins for the Joystick
+  // This will change based on your implementation of input
+  //
   pinMode(JOY_X, INPUT);
   pinMode(JOY_Y, INPUT);
   pinMode(SEL, INPUT_PULLUP);
-
-  // pi.progressCircle();
-  // while (true)
-    //;
 }
 
+// ICONS
+// You can skip past this section it is just a
+// bunch of bitmaps.
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const unsigned char bmp_keyboard[] PROGMEM = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x7f, 0x02,
                                               0x80, 0xaa, 0xaa, 0x02, 0x80, 0x02, 0x80, 0xea, 0xab, 0x02, 0x80,
                                               0xfc, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -213,42 +183,92 @@ const unsigned char bmp_warning[] PROGMEM = {
     // 'warning' 16x16
     0x00, 0x00, 0x80, 0x01, 0x40, 0x02, 0x40, 0x02, 0x20, 0x04, 0x90, 0x09, 0x90, 0x09, 0x88, 0x11,
     0x88, 0x11, 0x84, 0x21, 0x02, 0x40, 0x82, 0x41, 0x81, 0x81, 0x01, 0x80, 0xfe, 0x7f, 0x00, 0x00};
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// A list of menu items
+// In this case it is just every (maybe) UI component and their respective icons
+//
 PixelView::menuItem m[] = {{"Keyboard", bmp_keyboard}, {"Pagination", bmp_pagination}, {"Sub Menu", bmp_submenu},
                            {"Grid Menu", bmp_grid},    {"Radio Buttons", bmp_radio},   {"Check Boxes", bmp_checkbox},
                            {"List Browser", bmp_list}, {"Progress Bar", bmp_progress}, {"Dialog Boxes", bmp_warning}};
 void loop() {
 
+  // Do not let any stray input through
   while (sendInput() != ACTION_NONE)
     ;
 
+  // Call the menu function for the UI elements declared above
+  //
+  // Returns the `menuItem` that was selected
   PixelView::menuItem choice = pi.menu(m, LEN(m));
 
+  // Flush away any stray input
   while (sendInput() != ACTION_NONE)
     ;
 
   if (choice.name == "Keyboard") {
     const char *types[] = {"Keyboard", "Numpad", "Back"};
 
+    // Keep doing this till "Back" option is selected
     bool exit = false;
     while (!exit) {
       const char *c = pi.subMenu("Choose Keyboard type", types, 3);
 
       PixelView::Keyboard kbd(pi);
 
-      if (strcmp(c, "Keyboard") == 0) String s = kbd.fullKeyboard("Enter text", false, "def. value");
+      if (strcmp(c, "Keyboard") == 0)
+        String s = kbd.fullKeyboard(
+            "Enter text", false, "def. value"); // A function that displays a keyboard, and returns the typed out String
+                                                // Default values can be provided. In this case it is "def. value"
 
-      else if (strcmp(c, "Numpad") == 0) String s = kbd.numPad("11", false);
+      else if (strcmp(c, "Numpad") == 0)
+        String s = kbd.numPad("11", false); // Like `fullKeyboard` but just has numbers, useful for stuff like getting
+                                            // phone numbers or IP addresses
 
+      // Exit the loop
       else if (strcmp(c, "Back") == 0) exit = true;
     }
 
   } else if (choice.name == "Pagination") {
 
-    while (!exitPager)
-      p.render();
+    // Local functions for different "pages" in the paged navigation
+    // Each function MUST return one of the following:
+    //    - PAGER_CONTINUE
+    //    - PAGER_EXIT
+    //    - PAGER_TOGGLE_NAV
+    //    - PAGER_DISABLE_NAV
+    //    - PAGER_ENABLE_NAV
+    //
+    auto f1 = [](U8G2 disp, std::function<int(void)> ip) {
+      u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+      u8g2.drawStr(0, 10, "This is page One!");
 
-    exitPager = false;
+      return PAGER_CONTINUE;
+    };
+
+    auto f2 = [](U8G2 disp, std::function<int(void)>) {
+      u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+      u8g2.drawStr(0, 10, "This is page Two");
+
+      return PAGER_CONTINUE;
+    };
+
+    auto f3 = [](U8G2 disp, std::function<int(void)> ip) {
+      u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+      u8g2.drawStr(0, 10, "Press OK to exit");
+
+      if (ip() == ACTION_SEL) {
+        return PAGER_EXIT;
+      }
+
+      return PAGER_CONTINUE;
+    };
+
+    // Ugly way of defining an array of the functions we made above
+    std::function<int(U8G2, std::function<int(void)>)> functions[] = {f1, f2, f3};
+    PixelView::Pager p(&pi, LEN(functions), functions, PAGE_DOT_NAV);
+
+    p.loop();
 
   } else if (choice.name == "Sub Menu") {
 
@@ -285,7 +305,7 @@ void loop() {
 
     const char *options[] = {"a lot of text", "0xFF", "0x21", "www.google.com", "github.com"};
 
-    pi.listBrowser("List Browser Demo", bmp_list, options, LEN(options), LIST_BULLET_POINT, u8g2_font_haxrcorp4089_tr);
+    pi.listBrowser("List Browser Demo", bmp_list, options, LEN(options), LIST_BULLET_POINT);
 
   } else if (strcmp(choice.name.c_str(), "Dialog Boxes") == 0) {
 
@@ -303,3 +323,4 @@ void loop() {
     }
   }
 }
+
