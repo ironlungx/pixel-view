@@ -25,7 +25,6 @@ using std::function;
 #define LIST_BULLET_POINT 1
 #define LIST_NUMBER 2
 
-
 /* IDEAS:
  *    *None* as of now
  *
