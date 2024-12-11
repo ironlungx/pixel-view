@@ -1,8 +1,11 @@
 # Pixel View
-> A lightweight GUI library for monochrome 128x64 displays to be used with Arduino. 
+
+> A lightweight GUI library for monochrome 128x64 displays to be used with Arduino.
 
 ## Installation
+
 ### Platform IO
+
 1. Edit your `platform.ini` and include the following:
 
 ```ini
@@ -12,9 +15,13 @@ lib_deps = https://github.com/ironlungx/pixel-view
 2. `pio run`
 
 ### Arduino IDE
-**TODO**: Add support for Arduino IDE
 
-## Elements Provided 
+1. Download the current ZIP file from github [here](https://github.com/ironlungx/pixel-view/archive/refs/heads/main.zip)
+2. Inside the IDE, go to `Sketch->Include Library->Add a .ZIP library` and select the downloaded zip-file
+3. The Library will be installed and you can include the library in your sketch.
+
+## Elements Provided
+
 1. Keyboard:
 2. Numpad
 3. Radio buttons
@@ -22,6 +29,7 @@ lib_deps = https://github.com/ironlungx/pixel-view
 5. Menu
 6. Progress Bars:
 7. Dialog Boxes
+
 ---
 
 # Library Documentation
@@ -63,7 +71,7 @@ int sendInput() {
 }
 
 void setup() {
-  u8g2.begin(); 
+  u8g2.begin();
 }
 
 void loop() {
@@ -100,7 +108,7 @@ PixelView(U8G2 *display, function<int(void)> inputFunction, function<void(int)> 
 - **yloc**: Y-coordinate to start the text.
 - **text**: The text to be rendered.
 - **maintainX**: If true, the X location remains unchanged between lines.
-  
+
 This method renders text with word wrapping.
 Set the font before calling the function
 
@@ -201,7 +209,7 @@ Use `menuItem::name` to get the selected item's name
 Displays a submenu without icons and returns the selected item.
 Here is the portion for the `gridMenu`:
 
-![Gridmenu] (images/gridMenu.jpg) 
+![Gridmenu] (images/gridMenu.jpg)
 
 #### `menuItem gridMenu(menuItem items[], const unsigned int numItems, const unsigned int rowSize)`
 
@@ -250,7 +258,7 @@ Displays a list of checkboxes for the user to select.
 - **items**: Array of items to display.
 - **numItems**: Number of items in the list.
 - **displayType**: Display style (numbers, bullets, or none).
-  
+
 Displays a scrollable list of items.
 
 ---
