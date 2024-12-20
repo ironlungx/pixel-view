@@ -72,6 +72,14 @@ public:
    */
   void wordWrap(int xloc, int yloc, const char *text, bool maintainX = false);
 
+  /**
+   * @breif Renders text with a rounded box behind it. Takes into account Font size and stuff
+   *
+   * @param x The X location of text
+   * @param y The Y location of text
+   * @param text The text to be rendered
+   * @param font The font :)
+   */
   void accentText(int x, int y, const char *text, const uint8_t font[]);
 
   /**
@@ -229,9 +237,9 @@ public:
    *
    * @param items An array of type meuItems
    * @param numItems The number of items in `items`
-   * @return the selected menuItem
+   * @return the selected menuItem's index
    */
-  menuItem menu(menuItem items[], unsigned int numItems);
+  int menu(menuItem items[], unsigned int numItems);
   /**
    * @brief Similar to `menu` but does not have icons and also has a header
    *
@@ -240,8 +248,8 @@ public:
    * @param numItems The number of items
    * @return The selected option
    */
-  const char *subMenu(const char *header, const char *items[], unsigned int numItems);
-  const String subMenu(const char *header, const String items[], unsigned int numItems);
+  int subMenu(const char *header, const char *items[], unsigned int numItems);
+  int subMenu(const char *header, const String items[], unsigned int numItems);
 
   int gridMenu(const unsigned char *icon[], int numItems);
 

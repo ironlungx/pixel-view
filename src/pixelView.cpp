@@ -553,8 +553,8 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
   return text;
 }
 
-PixelView::Pager::Pager(PixelView *px, int numFuncs, std::function<int(U8G2, std::function<int(void)>)> *displayFunctions,
-                        const int indicatorType) {
+PixelView::Pager::Pager(PixelView *px, int numFuncs,
+                        std::function<int(U8G2, std::function<int(void)>)> *displayFunctions, const int indicatorType) {
   this->px = px;
   this->numFuncs = numFuncs;
   this->displayFunctions = displayFunctions;
@@ -685,7 +685,7 @@ static const unsigned char bitmap_scrollbar_background_full[] U8X8_PROGMEM = {
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40,
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x00};
 
-PixelView::menuItem PixelView::menu(menuItem items[], unsigned int numItems) {
+int PixelView::menu(menuItem items[], unsigned int numItems) {
   int itemSelected = 0;
   int prevItem;
   int nextItem;
@@ -716,7 +716,7 @@ PixelView::menuItem PixelView::menu(menuItem items[], unsigned int numItems) {
       while (doInput() != ACTION_NONE) {
         doDelay(70);
       }
-      return items[itemSelected];
+      return itemSelected;
     }
 
     prevItem = itemSelected - 1;
@@ -758,7 +758,7 @@ PixelView::menuItem PixelView::menu(menuItem items[], unsigned int numItems) {
   }
 }
 
-const char *PixelView::subMenu(const char *header, const char *items[], unsigned int numItems) {
+int PixelView::subMenu(const char *header, const char *items[], unsigned int numItems) {
   int itemSelected = 0;
   int prevItem;
   int nextItem;
@@ -789,7 +789,7 @@ const char *PixelView::subMenu(const char *header, const char *items[], unsigned
       while (doInput() != ACTION_NONE) {
         doDelay(70);
       }
-      return items[itemSelected];
+      return itemSelected;
     }
     prevItem = itemSelected - 1;
     if (prevItem < 0) prevItem = numItems - 1;
@@ -828,7 +828,7 @@ const char *PixelView::subMenu(const char *header, const char *items[], unsigned
   }
 }
 
-const String PixelView::subMenu(const char *header, const String items[], unsigned int numItems) {
+int PixelView::subMenu(const char *header, const String items[], unsigned int numItems) {
   int itemSelected = 0;
   int prevItem;
   int nextItem;
@@ -859,7 +859,7 @@ const String PixelView::subMenu(const char *header, const String items[], unsign
       while (doInput() != ACTION_NONE) {
         doDelay(70);
       }
-      return items[itemSelected];
+      return itemSelected;
     }
     prevItem = itemSelected - 1;
     if (prevItem < 0) prevItem = numItems - 1;
