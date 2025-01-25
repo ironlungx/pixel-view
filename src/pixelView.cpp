@@ -685,8 +685,8 @@ static const unsigned char bitmap_scrollbar_background_full[] U8X8_PROGMEM = {
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40,
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x00};
 
-int PixelView::menu(menuItem items[], unsigned int numItems) {
-  int itemSelected = 0;
+int PixelView::menu(menuItem items[], unsigned int numItems, int index) {
+  int itemSelected = index;
   int prevItem;
   int nextItem;
 
@@ -806,8 +806,9 @@ int PixelView::subMenu(const char *header, const char *items[], unsigned int num
 
     int scrollbarH = max(1, (int)(64 / numItems));
     int scrollbarY;
-    if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
-    else scrollbarY = 64 / numItems * itemSelected;
+
+    // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
+    /*else*/ scrollbarY = (64.0 / numItems) * itemSelected;
 
     u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 0);
 
@@ -874,10 +875,11 @@ int PixelView::subMenu(const char *header, const String items[], unsigned int nu
 
     u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
 
-    int scrollbarH = max(1, (int)(64 / numItems));
+    int scrollbarH = max(2, (int)(64 / numItems));
     int scrollbarY;
-    if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
-    else scrollbarY = 64 / numItems * itemSelected;
+
+    // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
+    /* else */ scrollbarY = (64.0 / numItems) * itemSelected;
 
     u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 0);
 

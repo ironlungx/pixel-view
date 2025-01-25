@@ -239,7 +239,7 @@ public:
    * @param numItems The number of items in `items`
    * @return the selected menuItem's index
    */
-  int menu(menuItem items[], unsigned int numItems);
+  int menu(menuItem items[], unsigned int numItems, int index=0);
   /**
    * @brief Similar to `menu` but does not have icons and also has a header
    *

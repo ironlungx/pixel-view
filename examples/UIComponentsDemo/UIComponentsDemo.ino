@@ -27,7 +27,6 @@
 //    - ACTION_SEL
 //    - ACTION_NONE       <- No action is currently happening
 //
-
 int sendInput() {
   int X = analogRead(JOY_X);
   int Y = analogRead(JOY_Y);
@@ -200,36 +199,35 @@ void loop() {
   // Call the menu function for the UI elements declared above
   //
   // Returns the `menuItem` that was selected
-  PixelView::menuItem choice = pi.menu(m, LEN(m));
+  static int choice;
+  choice = pi.menu(m, LEN(m), choice);
 
   // Flush away any stray input
   while (sendInput() != ACTION_NONE)
     ;
 
-  if (choice.name == "Keyboard") {
+  if (choice == 0) { // KEYBOARD
     const char *types[] = {"Keyboard", "Numpad", "Back"};
 
     // Keep doing this till "Back" option is selected
     bool exit = false;
     while (!exit) {
-      const char *c = pi.subMenu("Choose Keyboard type", types, 3);
+      int choice = pi.subMenu("Choose Keyboard type", types, 3);
 
-      PixelView::Keyboard kbd(pi);
-
-      if (strcmp(c, "Keyboard") == 0)
+      if (choice == 0)
         String s = kbd.fullKeyboard(
             "Enter text", false, "def. value"); // A function that displays a keyboard, and returns the typed out String
                                                 // Default values can be provided. In this case it is "def. value"
 
-      else if (strcmp(c, "Numpad") == 0)
+      else if (choice == 1)
         String s = kbd.numPad("11", false); // Like `fullKeyboard` but just has numbers, useful for stuff like getting
                                             // phone numbers or IP addresses
 
       // Exit the loop
-      else if (strcmp(c, "Back") == 0) exit = true;
+      else if (choice == 2) exit = true;
     }
 
-  } else if (choice.name == "Pagination") {
+  } else if (choice == 1) { //  PAGINATION
 
     // Local functions for different "pages" in the paged navigation
     // Each function MUST return one of the following:
@@ -270,20 +268,31 @@ void loop() {
 
     p.loop();
 
-  } else if (choice.name == "Sub Menu") {
+  } else if (choice == 2) { // SUBMENU
 
     const char *types[] = {"Option 1", "Option 2", "Back"};
-    const char *c = pi.subMenu("Submenu Demo", types, 3);
+    int choice = pi.subMenu("Submenu Demo", types, 3);
 
-  } else if (choice.name == "Grid Menu") {
+  } else if (choice == 3) { // GRID MENU
     gridMenu();
 
-  } else if (choice.name == "Radio Buttons") {
+  } else if (choice == 4) { // RADIO BUTTONS
 
     const char *options[] = {"option", "Another option", "yeet", "yank n paste"};
     pi.radioSelect("Radio Button Demo", options, LEN(options));
 
-  } else if (choice.name == "Progress Bar") {
+  } else if (choice == 5) { // CHECK BOXES
+
+    PixelView::checkBox c[] = {{"Option 1"}, {"press & hold ok to exit"}, {"Third choice"}, {"hhmmm"}, {"dark mode"}};
+
+    pi.checkBoxes("Check box demo", c, LEN(c));
+
+  } else if (choice == 6) {  // LIST BROWSER
+
+    const char *options[] = {"a lot of text", "0xFF", "0x21", "www.google.com", "github.com"};
+
+    pi.listBrowser("List Browser Demo", bmp_list, options, LEN(options), LIST_BULLET_POINT);
+  } else if (choice == 7) {   // PROGRESS BAR
 
     int i = 0;
     while (sendInput() != ACTION_SEL) {
@@ -294,20 +303,7 @@ void loop() {
       }
       delay(30);
     }
-
-  } else if (choice.name == "Check Boxes") {
-
-    PixelView::checkBox c[] = {{"Option 1"}, {"press & hold ok to exit"}, {"Third choice"}, {"hhmmm"}, {"dark mode"}};
-
-    pi.checkBoxes("Check box demo", c, LEN(c));
-
-  } else if (strcmp(choice.name.c_str(), "List Browser") == 0) {
-
-    const char *options[] = {"a lot of text", "0xFF", "0x21", "www.google.com", "github.com"};
-
-    pi.listBrowser("List Browser Demo", bmp_list, options, LEN(options), LIST_BULLET_POINT);
-
-  } else if (strcmp(choice.name.c_str(), "Dialog Boxes") == 0) {
+  } else if (choice == 8) {  // DIALOG BOX
 
     bool exit = false;
     while (!exit) {
@@ -315,12 +311,11 @@ void loop() {
       while (sendInput() != ACTION_NONE)
         ;
       const char *types[] = {"Yes/No Dialog", "Ok Dialog", "Back"};
-      const char *c = pi.subMenu("Dialog Demo", types, LEN(types));
+      int choice = pi.subMenu("Dialog Demo", types, LEN(types));
 
-      if (strcmp(c, "Yes/No Dialog") == 0) pi.confirmYN("Test Confirm", true);
-      else if (strcmp(c, "Ok Dialog") == 0) pi.showMessage("Test Message");
-      else if (strcmp(c, "Back") == 0) exit = true;
+      if (choice == 0) pi.confirmYN("Test Confirm", true);
+      else if (choice == 1) pi.showMessage("Test Message");
+      else if (choice == 2) exit = true;
     }
   }
 }
-
