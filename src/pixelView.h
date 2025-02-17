@@ -41,6 +41,9 @@ private:
   /**
    * @brief Pointer to a U8G2 object
    */
+  void search(const char *items[], unsigned int numItems, const char *query, const char *result[],
+              unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive = true);
+
   static U8G2 *u8g2;
 
   static function<int(void)> doInput;
@@ -125,7 +128,7 @@ public:
      * @return
      */
     String fullKeyboard(const String &message = "", bool isEmptyAllowed = false, const String &defaultText = "");
-    String numPad(const char *defaultText, bool isEmptyAllowed);
+    String numPad(const String message = "", bool isEmptyAllowed = false, const char *defaultText = "");
 
   private:
     void renderKeyboard(int pX, int pY, const String &text);
@@ -239,7 +242,7 @@ public:
    * @param numItems The number of items in `items`
    * @return the selected menuItem's index
    */
-  int menu(menuItem items[], unsigned int numItems, int index=0);
+  int menu(menuItem items[], unsigned int numItems, int index = 0);
   /**
    * @brief Similar to `menu` but does not have icons and also has a header
    *
@@ -248,10 +251,20 @@ public:
    * @param numItems The number of items
    * @return The selected option
    */
-  int subMenu(const char *header, const char *items[], unsigned int numItems);
-  int subMenu(const char *header, const String items[], unsigned int numItems);
+  int subMenu(const char *header, const char *items[], unsigned int numItems, int index = 0);
+  int subMenu(const char *header, const String items[], unsigned int numItems, int index = 0);
 
-  int gridMenu(const unsigned char *icon[], int numItems);
+  int searchList(const char *header, const char *items[], unsigned int numItems, bool caseSensitive = true);
+  int searchList(const char *header, const String items[], unsigned int numItems, bool caseSensitive = true);
+
+  /**
+   * @brief A grid of icons, you select one of them
+   *
+   * @param icons an array of bitmaps
+   * @param numItems number of bitmaps
+   * @return
+   */
+  int gridMenu(const unsigned char *icons[], int numItems);
 
   /**
    * @brief Radio buttons!!!

@@ -331,7 +331,13 @@ void PixelView::Keyboard::renderKeyboard(int pX, int pY, const String &text) {
   u8g2->sendBuffer();
 }
 
-String PixelView::Keyboard::numPad(const char *defaultText, bool isEmptyAllowed) {
+String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, const char *defaultText) {
+  while (doInput() != ACTION_NONE) {
+    doDelay(20);
+  }
+
+  if (message.length() != 0) p.showMessage(message.c_str());
+
   short indexX = 0;
   short indexY = 0;
   String text = defaultText;
@@ -363,35 +369,24 @@ String PixelView::Keyboard::numPad(const char *defaultText, bool isEmptyAllowed)
     int action = doInput();
     if (action == ACTION_UP) {
       indexY = max(0, indexY - 1);
-      while (doInput() != ACTION_NONE) {
-        doDelay(20);
-      }
     }
     if (action == ACTION_DOWN) {
       int newY = min(3, indexY + 1);
       if (strcmp(numpad[newY][indexX], " ") > 0) indexY = newY;
-
-      while (doInput() != ACTION_NONE) {
-        doDelay(20);
-      }
     }
     if (action == ACTION_LEFT) {
       // indexX = max(0, indexX - 1);
       int newX = max(0, indexX - 1);
 
       if (strcmp(numpad[indexY][newX], " ") > 0) indexX = newX;
-
-      while (doInput() != ACTION_NONE) {
-        doDelay(20);
-      }
     }
     if (action == ACTION_RIGHT) {
       indexX = min(2, indexX + 1);
+    }
+    if (action == ACTION_SEL) {
       while (doInput() != ACTION_NONE) {
         doDelay(20);
       }
-    }
-    if (action == ACTION_SEL) {
       if (strcmp(numpad[indexY][indexX], "\u0087") == 0) {
         if ((text.length() <= 0) && (isEmptyAllowed == false)) {
           p.showMessage("Error: Cannot be empty");
@@ -407,10 +402,7 @@ String PixelView::Keyboard::numPad(const char *defaultText, bool isEmptyAllowed)
       }
     }
   skip_append:
-    while (doInput() != ACTION_NONE) {
-      doDelay(50);
-    }
-    doDelay(50);
+    doDelay(100);
   }
   return text;
 }
@@ -758,8 +750,8 @@ int PixelView::menu(menuItem items[], unsigned int numItems, int index) {
   }
 }
 
-int PixelView::subMenu(const char *header, const char *items[], unsigned int numItems) {
-  int itemSelected = 0;
+int PixelView::subMenu(const char *header, const char *items[], unsigned int numItems, int index) {
+  int itemSelected = index;
   int prevItem;
   int nextItem;
 
@@ -810,7 +802,7 @@ int PixelView::subMenu(const char *header, const char *items[], unsigned int num
     // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
     /*else*/ scrollbarY = (64.0 / numItems) * itemSelected;
 
-    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 0);
+    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 1);
 
     u8g2->setFont(u8g2_font_helvB08_tr);
     u8g2->drawStr(1, 11, header);
@@ -829,8 +821,8 @@ int PixelView::subMenu(const char *header, const char *items[], unsigned int num
   }
 }
 
-int PixelView::subMenu(const char *header, const String items[], unsigned int numItems) {
-  int itemSelected = 0;
+int PixelView::subMenu(const char *header, const String items[], unsigned int numItems, int index) {
+  int itemSelected = index;
   int prevItem;
   int nextItem;
 
@@ -881,7 +873,7 @@ int PixelView::subMenu(const char *header, const String items[], unsigned int nu
     // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
     /* else */ scrollbarY = (64.0 / numItems) * itemSelected;
 
-    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 0);
+    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 1);
 
     u8g2->setFont(u8g2_font_helvB08_tr);
     u8g2->drawStr(1, 11, header);
@@ -899,6 +891,128 @@ int PixelView::subMenu(const char *header, const String items[], unsigned int nu
     doDelay(50);
   }
 }
+void PixelView::search(const char *items[], unsigned int numItems, const char *query, const char *result[],
+                       unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive) {
+  auto cmpstr = caseSensitive ? strstr : strcasestr;
+
+  *resultCount = 0;
+  for (unsigned int i = 0; i < numItems; i++) {
+    if (cmpstr(items[i], query)) {
+      result[*resultCount] = items[i];
+      resultIndices[*resultCount] = i; // Store original index
+      (*resultCount)++;
+    }
+  }
+}
+
+int PixelView::searchList(const char *header, const char *items[], unsigned int numItems, bool caseSensitive) {
+  int itemSelected = 0;
+  int prevItem;
+  int nextItem;
+
+  String query = "";
+
+  unsigned int resultCount;
+  const char *result[numItems];
+
+  unsigned int resultIndices[numItems]; // Maps filtered results back to original indices
+  search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
+
+  PixelView::Keyboard kbd(*this);
+
+  while (true) {
+    int input = doInput();
+
+    if (input == ACTION_UP) {
+      itemSelected--;
+      if (itemSelected < 0) itemSelected = resultCount - 1;
+      while (doInput() != ACTION_NONE) {
+        doDelay(70);
+      }
+    }
+
+    if (input == ACTION_DOWN) {
+      itemSelected++;
+      if (itemSelected >= resultCount) itemSelected = 0;
+      while (doInput() != ACTION_NONE) {
+        doDelay(70);
+      }
+      while (doInput() != ACTION_NONE)
+        ;
+    }
+
+    if (input == ACTION_SEL) {
+      int startMS = millis();
+      while (doInput() != ACTION_NONE) {
+        doDelay(70);
+      }
+
+      const char *options[] = {"Select this", "Edit search query", "Back"};
+      int c = this->subMenu("Choose an action", options, 3);
+
+      if (c == 0) {
+        return resultIndices[itemSelected];
+      }
+
+      if (c == 1) {
+        query = kbd.fullKeyboard("", true, query); // TODO: add keyboard fuction here
+        search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
+        itemSelected = 0;
+      }
+
+      while (doInput() != ACTION_NONE) {
+        doDelay(70);
+      }
+    }
+
+    if (resultCount == 0) {
+      query = kbd.fullKeyboard(String("No results for: " + query), true, query); // TODO: add keyboard fuction here
+      search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
+      continue;
+    }
+
+    prevItem = itemSelected - 1;
+    if (prevItem < 0) prevItem = resultCount - 1;
+
+    nextItem = itemSelected + 1;
+    if (nextItem >= resultCount) nextItem = 0;
+
+    u8g2->clearBuffer();
+    u8g2->setFontMode(1);
+    // u8g2->setBitmapMode(1);
+    u8g2->setDrawColor(1);
+
+    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
+
+    int scrollbarH = max(2, (int)(64 / resultCount));
+    int scrollbarY;
+
+    // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
+    /* else */ scrollbarY = (64.0 / resultCount) * itemSelected;
+
+    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 1);
+
+    u8g2->setFont(u8g2_font_helvB08_tr);
+    char buf[64];
+    snprintf(buf, 64, "%s (%d/%d)", header, resultCount, numItems);
+    u8g2->drawStr(1, 11, buf);
+
+    u8g2->setFont(u8g2_font_helvR08_tr);
+    u8g2->drawStr(8, 28, result[prevItem]);
+    u8g2->drawStr(8, 44, result[itemSelected]);
+    u8g2->drawStr(8, 60, result[nextItem]);
+
+    u8g2->setDrawColor(2);
+    u8g2->drawRBox(2, 33, 121, 15, 1);
+    u8g2->sendBuffer();
+    u8g2->setDrawColor(1);
+
+    doDelay(50);
+  }
+}
+
+int PixelView::searchList(const char *header, const String items[], unsigned int numItems, bool caseSensitive) {}
+
 int PixelView::gridMenu(const unsigned char *icon[], int numItems) {
   int selected = 0;
   int itemsPerRow = 6;                                   // Adjust based on your layout
