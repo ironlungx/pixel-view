@@ -58,7 +58,8 @@ int sendInput() {
 }
 
 U8G2 u8g2;
-PixelView pv(&u8g2, sendInput, [](int ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }, u8g2_font_haxrcorp4089_tr);
+PixelView pixelview(&u8g2, sendInput, [](int ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }, u8g2_font_haxrcorp4089_tr);
+PixelView::Keyboard keyboard(pixelview);
 
 void wifiScanner(PixelView *pv, PixelView::Keyboard *kyb, U8G2 *u8g2) {
   WiFi.mode(WIFI_STA);
@@ -126,8 +127,8 @@ void setup() {
   pinMode(JOY_Y, INPUT);
   pinMode(SEL, INPUT_PULLUP);
 
-  pv.showMessage("Setup finished, starting Wi-Fi scanner");
-  wifiScanner(&pi, &kbd, &u8g2);
+  pixelview.showMessage("Setup finished, starting Wi-Fi scanner");
+  wifiScanner(&pixelview, &keyboard, &u8g2);
 }
 void loop() {
   u8g2.clearBuffer();
