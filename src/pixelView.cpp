@@ -4,11 +4,11 @@
 #include <cstdio>
 
 U8G2 *PixelView::u8g2 = nullptr;
-function<int(void)> PixelView::doInput = nullptr;
-function<void(int32_t)> PixelView::doDelay = nullptr;
+std::function<int(void)> PixelView::doInput = nullptr;
+std::function<void(int32_t)> PixelView::doDelay = nullptr;
 
 // Implement the constructor
-PixelView::PixelView(U8G2 *display, function<int(void)> inputFunction, function<void(int)> delayer,
+PixelView::PixelView(U8G2 *display, std::function<int(void)> inputFunction, std::function<void(int)> delayer,
                      const uint8_t font[])
     : font(font) {
   u8g2 = display;
@@ -546,10 +546,10 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
 }
 
 PixelView::Pager::Pager(PixelView *px, int numFuncs,
-                        std::function<int(U8G2, std::function<int(void)>)> *displayFunctions, const int indicatorType) {
+                        PixelView::Pager::PageType *pages, const int indicatorType) {
   this->px = px;
   this->numFuncs = numFuncs;
-  this->displayFunctions = displayFunctions;
+  this->displayFunctions = pages;
   this->indicator = indicatorType;
 }
 
@@ -557,7 +557,7 @@ int PixelView::Pager::render() {
   static bool navEnabled = true;
 
   u8g2->clearBuffer();
-  int returnVal = displayFunctions[index](*u8g2, doInput);
+  int returnVal = displayFunctions[index](u8g2, doInput);
 
   switch (returnVal) {
   case PAGER_DISABLE_NAV: {

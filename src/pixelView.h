@@ -4,8 +4,6 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 
-using std::function;
-
 // Pager Navigation types
 #define PAGE_DOT_NAV 1
 #define PAGE_NUM_NAV 2
@@ -46,8 +44,8 @@ private:
 
   static U8G2 *u8g2;
 
-  static function<int(void)> doInput;
-  static function<void(int32_t)> doDelay;
+  static std::function<int(void)> doInput;
+  static std::function<void(int32_t)> doDelay;
 
   const uint8_t *font;
 
@@ -61,7 +59,7 @@ public:
    *
    * @returns void
    */
-  PixelView(U8G2 *display, function<int(void)> inputFunction, function<void(int)> delayer,
+  PixelView(U8G2 *display, std::function<int(void)> inputFunction, std::function<void(int)> delayer,
             const uint8_t font[] = u8g2_font_6x12_tr);
 
   /**
@@ -191,8 +189,12 @@ public:
    * +-------------------------------+    +-------------------------------+
    */
   class Pager {
+  public:
+    typedef std::function<int()> InputFuncType;     
+    typedef std::function<int(U8G2 *, InputFuncType)> PageType;
+
   private:
-    std::function<int(U8G2, std::function<int(void)>)> *displayFunctions;
+    PageType *displayFunctions;
     int numFuncs;
     int index = 0;
     PixelView *px;
@@ -208,8 +210,8 @@ public:
      *                         Each function can return PAGER_* macros to execute actions
      *
      */
-    Pager(PixelView *px, int numFuncs, std::function<int(U8G2, std::function<int(void)>)> *displayFunctions,
-          const int indicatorType = PAGE_DOT_NAV);
+
+    Pager(PixelView *px, int numFuncs, PageType *pages, const int indicatorType = PAGE_DOT_NAV);
 
     /**
      * @brief Render the frame and manage input
@@ -304,6 +306,16 @@ public:
   void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], unsigned int numItems,
                    int displayType = LIST_NUMBER);
 
+  /**
+   * @brief Shows a list of items that you can scroll through
+   *
+   * @param header The header/title that remains static and doesnt scroll
+   * @param iconBitmap A 16x16 icon, pass NULL to use no icon
+   * @param items The list of items to be displayed
+   * @param numItems Number of items in the list
+   * @param displayType Can be Bullet points, numbers or nothing
+   * @param font the font to use
+   */
   void listBrowser(const char *header, const unsigned char iconBitmap[], const String items[], unsigned int numItems,
                    int displayType = LIST_NUMBER);
 
