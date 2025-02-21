@@ -11,18 +11,6 @@
 #define PAGE_ARROW_NAV 4
 #define PAGE_NONE_NAV 5
 
-// Pager Return codes
-#define PAGER_EXIT -1
-#define PAGER_CONTINUE 0
-#define PAGER_DISABLE_NAV 1
-#define PAGER_ENABLE_NAV 2
-#define PAGER_TOGGLE_NAV 3
-
-// List browser
-#define LIST_NONE 0
-#define LIST_BULLET_POINT 1
-#define LIST_NUMBER 2
-
 /* IDEAS:
  *    *None* as of now
  *
@@ -35,6 +23,9 @@
  *
  */
 class PixelView {
+public:
+  typedef std::function<ActionType(void)> InputFuncType;
+
 private:
   /**
    * @brief Pointer to a U8G2 object
@@ -44,7 +35,7 @@ private:
 
   static U8G2 *u8g2;
 
-  static std::function<int(void)> doInput;
+  static InputFuncType doInput;
   static std::function<void(int32_t)> doDelay;
 
   const uint8_t *font;
@@ -54,12 +45,12 @@ public:
    * @brief The constructor
    *
    * @param display is a pointer to an object of type U8G2
-   * @param inputFunction A function that returns any ACTION
+   * @param inputFunction A function that returns any ActionType
    * @param delayer A function that delays for n milliseconds
    *
    * @returns void
    */
-  PixelView(U8G2 *display, std::function<int(void)> inputFunction, std::function<void(int)> delayer,
+  PixelView(U8G2 *display, std::function<ActionType(void)> inputFunction, std::function<void(int)> delayer,
             const uint8_t font[] = u8g2_font_6x12_tr);
 
   /**
@@ -190,17 +181,19 @@ public:
    */
   class Pager {
   public:
-    typedef std::function<int()> InputFuncType;     
-    typedef std::function<int(U8G2 *, InputFuncType)> PageType;
+    enum class IndicatorType { DOT, NUM, NUM_ARROW, ARROW, NONE };
+    enum class PagerActionType { EXIT, CONTINUE, DISABLE_NAV, ENABLE_NAV, TOGGLE_NAV };
+
+    typedef std::function<PagerActionType(U8G2 *, InputFuncType)> PageFuncType;
 
   private:
-    PageType *displayFunctions;
+    PageFuncType *displayFunctions;
     int numFuncs;
     int index = 0;
     PixelView *px;
 
   public:
-    int indicator;
+    IndicatorType indicator;
     /**
      * @constructor
      *
@@ -211,13 +204,13 @@ public:
      *
      */
 
-    Pager(PixelView *px, int numFuncs, PageType *pages, const int indicatorType = PAGE_DOT_NAV);
+    Pager(PixelView *px, int numFuncs, PageFuncType *pages, const IndicatorType indicatorType = IndicatorType::DOT);
 
     /**
-     * @brief Render the frame and manage input
-     * @returns the value returned by the currently rendering page
+     * @brief Render the current page and manage input
+     * @returns the ActionType returned by the currently rendering page
      */
-    int render();
+    PagerActionType render();
 
     /**
      * @brief Loops till functions return PAGER_EXIT
@@ -303,8 +296,11 @@ public:
    * @param displayType Can be Bullet points, numbers or nothing
    * @param font the font to use
    */
+
+  enum class ListType { NONE, BULLET, NUMBER };
+
   void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], unsigned int numItems,
-                   int displayType = LIST_NUMBER);
+                   ListType displayType = ListType::NUMBER);
 
   /**
    * @brief Shows a list of items that you can scroll through
@@ -317,7 +313,7 @@ public:
    * @param font the font to use
    */
   void listBrowser(const char *header, const unsigned char iconBitmap[], const String items[], unsigned int numItems,
-                   int displayType = LIST_NUMBER);
+                   ListType displayType = ListType::NUMBER);
 
   void progressBar(int progress, const char *header, const unsigned char *bitmap[] = NULL);
 

@@ -1,14 +1,15 @@
 #include "pixelView.h"
+#include "actions.h"
 #include <Arduino.h>
 #include <U8g2lib.h>
 #include <cstdio>
 
 U8G2 *PixelView::u8g2 = nullptr;
-std::function<int(void)> PixelView::doInput = nullptr;
+PixelView::InputFuncType PixelView::doInput = nullptr;
 std::function<void(int32_t)> PixelView::doDelay = nullptr;
 
 // Implement the constructor
-PixelView::PixelView(U8G2 *display, std::function<int(void)> inputFunction, std::function<void(int)> delayer,
+PixelView::PixelView(U8G2 *display, std::function<ActionType(void)> inputFunction, std::function<void(int)> delayer,
                      const uint8_t font[])
     : font(font) {
   u8g2 = display;
@@ -71,7 +72,7 @@ void PixelView::accentText(int x, int y, const char *text, const uint8_t font[])
 }
 
 bool PixelView::confirmYN(const char *message, bool defaultOption) {
-  while (this->doInput() != ACTION_NONE)
+  while (this->doInput() != ActionType::NONE)
     ;
 
   while (true) {
@@ -110,23 +111,23 @@ bool PixelView::confirmYN(const char *message, bool defaultOption) {
     };
     render();
 
-    int action = doInput();
+    ActionType action = doInput();
 
-    if (action == ACTION_NONE) {
+    if (action == ActionType::NONE) {
       this->doDelay(150);
       continue;
     }
 
-    if (action != ACTION_SEL) {
+    if (action != ActionType::SEL) {
       defaultOption = !defaultOption;
 
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(20);
       }
 
     } else {
       render2();
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(20);
       }
       render();
@@ -139,7 +140,7 @@ bool PixelView::confirmYN(const char *message, bool defaultOption) {
 
 void PixelView::showMessage(const char *message) {
 
-  while (doInput() != ACTION_NONE) {
+  while (doInput() != ActionType::NONE) {
     doDelay(20);
   }
 
@@ -150,7 +151,7 @@ void PixelView::showMessage(const char *message) {
   u8g2->drawButtonUTF8(58, 56, U8G2_BTN_INV | U8G2_BTN_SHADOW2 | U8G2_BTN_HCENTER | U8G2_BTN_BW1, 0, 2, 2, "Okay");
 
   u8g2->sendBuffer();
-  while (doInput() != ACTION_SEL) {
+  while (doInput() != ActionType::SEL) {
     doDelay(20);
   }
 
@@ -162,7 +163,7 @@ void PixelView::showMessage(const char *message) {
   u8g2->sendBuffer();
 
   this->doDelay(150);
-  while (doInput() != ACTION_NONE) {
+  while (doInput() != ActionType::NONE) {
     doDelay(20);
   }
 
@@ -332,7 +333,7 @@ void PixelView::Keyboard::renderKeyboard(int pX, int pY, const String &text) {
 }
 
 String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, const char *defaultText) {
-  while (doInput() != ACTION_NONE) {
+  while (doInput() != ActionType::NONE) {
     doDelay(20);
   }
 
@@ -366,25 +367,25 @@ String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, co
     u8g2->drawBox((indexX + 1) * 12 - 4 - 2, ((indexY + 1) * 12 + 7 - 9), 9, 10);
     u8g2->sendBuffer();
 
-    int action = doInput();
-    if (action == ACTION_UP) {
+    ActionType action = doInput();
+    if (action == ActionType::UP) {
       indexY = max(0, indexY - 1);
     }
-    if (action == ACTION_DOWN) {
+    if (action == ActionType::DOWN) {
       int newY = min(3, indexY + 1);
       if (strcmp(numpad[newY][indexX], " ") > 0) indexY = newY;
     }
-    if (action == ACTION_LEFT) {
+    if (action == ActionType::LEFT) {
       // indexX = max(0, indexX - 1);
       int newX = max(0, indexX - 1);
 
       if (strcmp(numpad[indexY][newX], " ") > 0) indexX = newX;
     }
-    if (action == ACTION_RIGHT) {
+    if (action == ActionType::RIGHT) {
       indexX = min(2, indexX + 1);
     }
-    if (action == ACTION_SEL) {
-      while (doInput() != ACTION_NONE) {
+    if (action == ActionType::SEL) {
+      while (doInput() != ActionType::NONE) {
         doDelay(20);
       }
       if (strcmp(numpad[indexY][indexX], "\u0087") == 0) {
@@ -408,7 +409,7 @@ String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, co
 }
 
 String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllowed, const String &defaultText) {
-  while (doInput() != ACTION_NONE) {
+  while (doInput() != ActionType::NONE) {
     doDelay(20);
   }
   if (message.length() != 0) p.showMessage(message.c_str());
@@ -418,7 +419,7 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
   int pointerX = 0;
   int pointerY = 0;
 
-  int action;
+  ActionType action;
 
   bool exit = false;
   while (!exit) {
@@ -426,19 +427,19 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
 
     action = doInput();
     switch (action) {
-    case ACTION_LEFT: {
+    case ActionType::LEFT: {
       pointerX = max(0, pointerX - 1);
       break;
     }
-    case ACTION_RIGHT: {
+    case ActionType::RIGHT: {
       pointerX = min(9, pointerX + 1);
       break;
     }
-    case ACTION_DOWN: {
+    case ActionType::DOWN: {
       pointerY = min(3, pointerY + 1);
       break;
     }
-    case ACTION_UP: {
+    case ActionType::UP: {
       pointerY = max(0, pointerY - 1);
       break;
     }
@@ -446,8 +447,8 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
       break;
     }
 
-    if (action == ACTION_SEL) {
-      while (doInput() != ACTION_NONE) {
+    if (action == ActionType::SEL) {
+      while (doInput() != ActionType::NONE) {
         doDelay(20);
       }
       if (strcmp(currentLayer[pointerY][pointerX], "<caps>") == 0) {
@@ -503,10 +504,10 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
         p.wordWrap(2, 7, text.length() == 0 ? "No text input" : text.c_str());
         u8g2->sendBuffer();
 
-        while (doInput() != ACTION_SEL) {
+        while (doInput() != ActionType::SEL) {
           doDelay(20);
         }
-        while (doInput() != ACTION_NONE) {
+        while (doInput() != ActionType::NONE) {
           doDelay(20);
         }
 
@@ -545,30 +546,42 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
   return text;
 }
 
-PixelView::Pager::Pager(PixelView *px, int numFuncs,
-                        PixelView::Pager::PageType *pages, const int indicatorType) {
+PixelView::Pager::Pager(PixelView *px, int numFuncs, PixelView::Pager::PageFuncType *pages,
+                        const PixelView::Pager::IndicatorType indicatorType) {
   this->px = px;
   this->numFuncs = numFuncs;
   this->displayFunctions = pages;
   this->indicator = indicatorType;
 }
 
-int PixelView::Pager::render() {
+PixelView::Pager::PagerActionType PixelView::Pager::render() {
   static bool navEnabled = true;
 
   u8g2->clearBuffer();
-  int returnVal = displayFunctions[index](u8g2, doInput);
+  PagerActionType returnVal = displayFunctions[index](u8g2, doInput);
 
   switch (returnVal) {
-  case PAGER_DISABLE_NAV: {
+  case PagerActionType::DISABLE_NAV: {
     navEnabled = false;
-  }
-  case PAGER_ENABLE_NAV: {
+  } break;
+
+  case PagerActionType::ENABLE_NAV: {
     navEnabled = true;
-  }
-  case PAGER_TOGGLE_NAV: {
+  } break;
+
+  case PagerActionType::TOGGLE_NAV: {
     navEnabled = !navEnabled;
-  }
+  } break;
+
+  case PagerActionType::CONTINUE: {
+    // No action requested, continue
+  } break;
+
+  case PagerActionType::EXIT: {
+    //////////////////////////////////////////////////////////////////////////////////////////
+    // EXIT should be handled by the top level function (aka whoever is calling this function)
+    //////////////////////////////////////////////////////////////////////////////////////////
+  } break;
   }
 
   if (!navEnabled) {
@@ -577,7 +590,7 @@ int PixelView::Pager::render() {
   }
 
   switch (this->indicator) {
-  case PAGE_DOT_NAV: {
+  case IndicatorType::DOT: {
     u8g2->setFont(u8g2_font_unifont_t_75);
     String str;
     for (int i = 0; i < numFuncs; i++)
@@ -587,7 +600,7 @@ int PixelView::Pager::render() {
     u8g2->drawUTF8(centerX, 64, str.c_str());
     break;
   }
-  case PAGE_NUM_NAV: {
+  case IndicatorType::NUM: {
     u8g2->setFont(u8g2_font_6x12_tr);
     char buf[64];
     sprintf(buf, "%d of %d", index + 1, numFuncs);
@@ -596,7 +609,7 @@ int PixelView::Pager::render() {
     u8g2->drawStr(centerX, 64, buf);
     break;
   }
-  case PAGE_NUM_AND_ARROW_NAV: {
+  case IndicatorType::NUM_ARROW: {
     u8g2->setFont(u8g2_font_6x12_tr);
     char buf[64];
     sprintf(buf, "< %d of %d >", index + 1, numFuncs);
@@ -605,30 +618,30 @@ int PixelView::Pager::render() {
     u8g2->drawStr(centerX, 64, buf);
     break;
   }
-  case PAGE_ARROW_NAV: {
+  case IndicatorType::ARROW: {
     u8g2->setFont(u8g2_font_6x12_tr);
     const char *buf = "<      >";
     int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
     u8g2->drawStr(centerX, 64, buf);
     break;
   }
-  case PAGE_NONE_NAV:
+  case IndicatorType::NONE:
     break;
   }
 
   u8g2->sendBuffer();
 
-  int input = doInput();
+  ActionType input = doInput();
 
-  if ((input == ACTION_LEFT) || (input == ACTION_UP)) {
+  if ((input == ActionType::LEFT) || (input == ActionType::UP)) {
     index--;
-    while (doInput() != ACTION_NONE)
+    while (doInput() != ActionType::NONE)
       doDelay(100);
   }
 
-  if ((input == ACTION_RIGHT) || (input == ACTION_DOWN)) {
+  if ((input == ActionType::RIGHT) || (input == ActionType::DOWN)) {
     index++;
-    while (doInput() != ACTION_NONE)
+    while (doInput() != ActionType::NONE)
       doDelay(100);
   }
 
@@ -643,7 +656,7 @@ int PixelView::Pager::render() {
 
 void PixelView::Pager::loop(int delay) {
   while (true) {
-    if (render() == PAGER_EXIT) {
+    if (render() == PagerActionType::EXIT) {
       break;
     }
 
@@ -683,29 +696,29 @@ int PixelView::menu(menuItem items[], unsigned int numItems, int index) {
   int nextItem;
 
   while (true) {
-    int input = doInput();
+    ActionType input = doInput();
 
-    if (input == ACTION_UP) {
+    if (input == ActionType::UP) {
 
       itemSelected--;
       if (itemSelected < 0) itemSelected = numItems - 1;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
     }
 
-    if (input == ACTION_DOWN) {
+    if (input == ActionType::DOWN) {
       itemSelected++;
       if (itemSelected >= numItems) itemSelected = 0;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
-      while (doInput() != ACTION_NONE)
+      while (doInput() != ActionType::NONE)
         ;
     }
 
-    if (input == ACTION_SEL) {
-      while (doInput() != ACTION_NONE) {
+    if (input == ActionType::SEL) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
       return itemSelected;
@@ -757,28 +770,28 @@ int PixelView::subMenu(const char *header, const char *items[], unsigned int num
 
   while (true) {
 
-    int input = doInput();
-    if (input == ACTION_UP) {
+    ActionType input = doInput();
+    if (input == ActionType::UP) {
 
       itemSelected--;
       if (itemSelected < 0) itemSelected = numItems - 1;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
     }
 
-    if (input == ACTION_DOWN) {
+    if (input == ActionType::DOWN) {
       itemSelected++;
       if (itemSelected >= numItems) itemSelected = 0;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
-      while (doInput() != ACTION_NONE)
+      while (doInput() != ActionType::NONE)
         ;
     }
 
-    if (input == ACTION_SEL) {
-      while (doInput() != ACTION_NONE) {
+    if (input == ActionType::SEL) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
       return itemSelected;
@@ -828,28 +841,28 @@ int PixelView::subMenu(const char *header, const String items[], unsigned int nu
 
   while (true) {
 
-    int input = doInput();
-    if (input == ACTION_UP) {
+    ActionType input = doInput();
+    if (input == ActionType::UP) {
 
       itemSelected--;
       if (itemSelected < 0) itemSelected = numItems - 1;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
     }
 
-    if (input == ACTION_DOWN) {
+    if (input == ActionType::DOWN) {
       itemSelected++;
       if (itemSelected >= numItems) itemSelected = 0;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
-      while (doInput() != ACTION_NONE)
+      while (doInput() != ActionType::NONE)
         ;
     }
 
-    if (input == ACTION_SEL) {
-      while (doInput() != ACTION_NONE) {
+    if (input == ActionType::SEL) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
       return itemSelected;
@@ -921,29 +934,29 @@ int PixelView::searchList(const char *header, const char *items[], unsigned int 
   PixelView::Keyboard kbd(*this);
 
   while (true) {
-    int input = doInput();
+    ActionType input = doInput();
 
-    if (input == ACTION_UP) {
+    if (input == ActionType::UP) {
       itemSelected--;
       if (itemSelected < 0) itemSelected = resultCount - 1;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
     }
 
-    if (input == ACTION_DOWN) {
+    if (input == ActionType::DOWN) {
       itemSelected++;
       if (itemSelected >= resultCount) itemSelected = 0;
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
-      while (doInput() != ACTION_NONE)
+      while (doInput() != ActionType::NONE)
         ;
     }
 
-    if (input == ACTION_SEL) {
+    if (input == ActionType::SEL) {
       int startMS = millis();
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
 
@@ -960,7 +973,7 @@ int PixelView::searchList(const char *header, const char *items[], unsigned int 
         itemSelected = 0;
       }
 
-      while (doInput() != ACTION_NONE) {
+      while (doInput() != ActionType::NONE) {
         doDelay(70);
       }
     }
@@ -1044,30 +1057,30 @@ int PixelView::gridMenu(const unsigned char *icon[], int numItems) {
     u8g2->sendBuffer();
 
     switch (doInput()) {
-    case ACTION_LEFT: {
+    case ActionType::LEFT: {
       if (selected % itemsPerRow > 0) {
         selected--;
       }
     } break;
-    case ACTION_RIGHT: {
+    case ActionType::RIGHT: {
       if (selected % itemsPerRow < itemsPerRow - 1 && selected < numItems - 1) {
         selected++;
       }
     } break;
-    case ACTION_UP: {
+    case ActionType::UP: {
       if (selected >= itemsPerRow) {
         selected -= itemsPerRow;
       }
     } break;
-    case ACTION_DOWN: {
+    case ActionType::DOWN: {
       if (selected + itemsPerRow < numItems) {
         selected += itemsPerRow;
       }
     } break;
-    case ACTION_SEL:
+    case ActionType::SEL:
       return selected; // Or handle selection as needed
     }
-    while (doInput() != ACTION_NONE)
+    while (doInput() != ActionType::NONE)
 
       // Add a small delay to prevent too rapid updates
       doDelay(50);
@@ -1120,14 +1133,14 @@ const char *PixelView::radioSelect(const char *header, const char *items[], cons
     u8g2->sendBuffer();
 
     // Wait for input
-    int action;
+    ActionType action;
     do {
       action = doInput();
-    } while (action == ACTION_NONE);
+    } while (action == ActionType::NONE);
 
     // Process input
     switch (action) {
-    case ACTION_UP:
+    case ActionType::UP:
       if (selected > 0) {
         selected--;
         if (selected < startIndex) {
@@ -1135,7 +1148,7 @@ const char *PixelView::radioSelect(const char *header, const char *items[], cons
         }
       }
       break;
-    case ACTION_DOWN:
+    case ActionType::DOWN:
       if (selected < numItems - 1) {
         selected++;
         if (selected >= startIndex + itemsPerPage) {
@@ -1143,8 +1156,8 @@ const char *PixelView::radioSelect(const char *header, const char *items[], cons
         }
       }
       break;
-    case ACTION_SEL:
-      while (doInput() != ACTION_NONE) {
+    case ActionType::SEL:
+      while (doInput() != ActionType::NONE) {
         doDelay(20);
       }
       return items[selected]; // Return the selected item
@@ -1161,7 +1174,7 @@ const char *PixelView::radioSelect(const char *header, const char *items[], cons
     // Wait for button release
     do {
       action = doInput();
-    } while (action != ACTION_NONE);
+    } while (action != ActionType::NONE);
   }
 }
 
@@ -1219,14 +1232,14 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned 
     u8g2->sendBuffer();
 
     // Wait for input
-    int action;
+    ActionType action;
     do {
       action = doInput();
-    } while (action == ACTION_NONE);
+    } while (action == ActionType::NONE);
 
     // Process input
     switch (action) {
-    case ACTION_UP:
+    case ActionType::UP:
       if (selected > 0) {
         selected--;
         if (selected < startIndex) {
@@ -1234,7 +1247,7 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned 
         }
       }
       break;
-    case ACTION_DOWN:
+    case ActionType::DOWN:
       if (selected < numItems - 1) {
         selected++;
         if (selected >= startIndex + itemsPerPage) {
@@ -1242,10 +1255,10 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned 
         }
       }
       break;
-    case ACTION_SEL: {
+    case ActionType::SEL: {
       unsigned long startTime = millis();
 
-      while (doInput() == ACTION_SEL)
+      while (doInput() == ActionType::SEL)
         ;
       if ((millis() - startTime) > 1700) {
         return;
@@ -1266,12 +1279,12 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned 
     // Wait for button release
     do {
       action = doInput();
-    } while (action != ACTION_NONE);
+    } while (action != ActionType::NONE);
   }
 }
 
 void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const String items[],
-                            unsigned int numItems, int displayType) {
+                            unsigned int numItems, ListType displayType) {
 
   unsigned int offset = 0; // Offset for scrolling
   int displayHeight = u8g2->getDisplayHeight();
@@ -1330,15 +1343,15 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
 
       char buf[128];
       switch (displayType) {
-      case LIST_NONE: {
+      case ListType::NONE: {
         strcpy(buf, items[itemIndex].c_str());
         break;
       }
-      case LIST_BULLET_POINT: {
+      case ListType::BULLET: {
         sprintf(buf, "-° %s", items[itemIndex].c_str());
         break;
       }
-      case LIST_NUMBER: {
+      case ListType::NUMBER: {
         sprintf(buf, "%d. %s", itemIndex + 1, items[itemIndex].c_str());
       }
       }
@@ -1350,31 +1363,31 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
     u8g2->sendBuffer(); // Send buffer to the display
 
     // Handle input actions
-    int action = doInput();
+    ActionType action = doInput();
 
-    if (action == ACTION_UP) {
+    if (action == ActionType::UP) {
       if (offset > 0) {
         offset--;
       }
     }
-    if (action == ACTION_DOWN) {
+    if (action == ActionType::DOWN) {
       if ((numItems > visibleItems) && offset < (numItems - visibleItems)) {
         offset++;
       }
     }
-    if (action == ACTION_SEL) {
-      while (doInput() == ACTION_SEL)
+    if (action == ActionType::SEL) {
+      while (doInput() == ActionType::SEL)
         ; // Wait until selection is released
       break;
     }
 
-    while (doInput() != ACTION_NONE) {
+    while (doInput() != ActionType::NONE) {
       doDelay(20);
     } // Wait for no input
   } while (true);
 }
 void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[],
-                            unsigned int numItems, int displayType) {
+                            unsigned int numItems, ListType displayType) {
 
   unsigned int offset = 0; // Offset for scrolling
   int displayHeight = u8g2->getDisplayHeight();
@@ -1433,15 +1446,15 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
 
       char buf[128];
       switch (displayType) {
-      case LIST_NONE: {
+      case ListType::NONE: {
         strcpy(buf, items[itemIndex]);
         break;
       }
-      case LIST_BULLET_POINT: {
+      case ListType::BULLET: {
         sprintf(buf, "-° %s", items[itemIndex]);
         break;
       }
-      case LIST_NUMBER: {
+      case ListType::NUMBER: {
         sprintf(buf, "%d. %s", itemIndex + 1, items[itemIndex]);
       }
       }
@@ -1453,25 +1466,25 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
     u8g2->sendBuffer(); // Send buffer to the display
 
     // Handle input actions
-    int action = doInput();
+    ActionType action = doInput();
 
-    if (action == ACTION_UP) {
+    if (action == ActionType::UP) {
       if (offset > 0) {
         offset--;
       }
     }
-    if (action == ACTION_DOWN) {
+    if (action == ActionType::DOWN) {
       if ((numItems > visibleItems) && offset < (numItems - visibleItems)) {
         offset++;
       }
     }
-    if (action == ACTION_SEL) {
-      while (doInput() == ACTION_SEL)
+    if (action == ActionType::SEL) {
+      while (doInput() == ActionType::SEL)
         ; // Wait until selection is released
       break;
     }
 
-    while (doInput() != ACTION_NONE) {
+    while (doInput() != ActionType::NONE) {
       doDelay(20);
     } // Wait for no input
   } while (true);
