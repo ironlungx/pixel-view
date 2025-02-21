@@ -8,7 +8,7 @@
 //
 #define JOY_X 8
 #define JOY_Y 7
-#define SEL 6
+#define BTN 6
 
 const unsigned char bmpWiFi_4Bars[] PROGMEM = {0x00, 0x00, 0x00, 0x00, 0xc0, 0x03, 0xf8, 0x1f, 0xfe, 0x7f, 0xff,
                                                0xff, 0xfe, 0x7f, 0xfc, 0x3f, 0xf8, 0x1f, 0xf0, 0x0f, 0xe0, 0x07,
@@ -32,37 +32,32 @@ const unsigned char bmpLock[] PROGMEM = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3
                                          0x01, 0x3b, 0xff, 0x69, 0xc0, 0x69, 0xc0, 0x3b, 0xef, 0x86, 0x69,
                                          0xfc, 0x78, 0x30, 0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-int sendInput() {
+ActionType sendInput() {
   int X = analogRead(JOY_X);
   int Y = analogRead(JOY_Y);
 
-  Serial.printf("%d %d\n", X, Y);
-
-  // Assuming a center position of around 512 for both axes
   if (X < 10 && Y > 1750) {
-    return ACTION_UP;
+    return ActionType::UP;
   } else if (X > 3900 && Y > 1750) {
-
-    return ACTION_DOWN;
+    return ActionType::DOWN;
   } else if (X > 1750 && Y < 50) {
-
-    return ACTION_LEFT;
+    return ActionType::LEFT;
   } else if (X > 1750 && Y > 3900) {
-
-    return ACTION_RIGHT;
+    return ActionType::RIGHT;
   }
 
-  if (digitalRead(SEL) == LOW) return ACTION_SEL;
+  if (digitalRead(BTN) == LOW) return ActionType::SEL;
 
-  return ACTION_NONE;
+  return ActionType::NONE;
 }
-
-U8G2 u8g2;
-PixelView pixelview(&u8g2, sendInput, [](int ms) { vTaskDelay(pdMS_TO_TICKS(ms)); }, u8g2_font_haxrcorp4089_tr);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
+PixelView pixelview(&u8g2, sendInput, delay, u8g2_font_haxrcorp4089_tr);
 PixelView::Keyboard keyboard(pixelview);
 
 void wifiScanner(PixelView *pv, PixelView::Keyboard *kyb, U8G2 *u8g2) {
   WiFi.mode(WIFI_STA);
+
+  // There's a bug with the WiFi library on the ESP32 where Async scan errors out... if it is fixed we can use progressCircle() while waiting for the scan to finish :)
 
   u8g2->clearBuffer();
   u8g2->setFont(u8g2_font_haxrcorp4089_tr);
@@ -125,7 +120,7 @@ void setup() {
   //
   pinMode(JOY_X, INPUT);
   pinMode(JOY_Y, INPUT);
-  pinMode(SEL, INPUT_PULLUP);
+  pinMode(BTN, INPUT_PULLUP);
 
   pixelview.showMessage("Setup finished, starting Wi-Fi scanner");
   wifiScanner(&pixelview, &keyboard, &u8g2);
