@@ -12,8 +12,8 @@
 #define PAGE_NONE_NAV 5
 
 /* IDEAS:
- *    *None* as of now
- *
+ *    - Have some 'non-blocking' functions for Pager 
+ *    -
  *
  * */
 
@@ -30,17 +30,21 @@ private:
   /**
    * @brief Pointer to a U8G2 object
    */
+  U8G2 *u8g2;
+
   void search(const char *items[], unsigned int numItems, const char *query, const char *result[],
               unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive = true);
 
-  static U8G2 *u8g2;
+  void search(const String items[], unsigned int numItems, const char *query, const char *result[],
+              unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive = true);
 
-  static InputFuncType doInput;
-  static std::function<void(int32_t)> doDelay;
 
   const uint8_t *font;
 
 public:
+  InputFuncType doInput;
+  std::function<void(int32_t)> doDelay;
+
   /**
    * @brief The constructor
    *
@@ -106,7 +110,7 @@ public:
    */
   class Keyboard {
   public:
-    Keyboard(PixelView &pixelView); // Constructor
+    Keyboard(PixelView *pixelView); // Constructor
 
     /**
      * @brief Renders the keyboard on the display itself.
@@ -114,9 +118,18 @@ public:
      * @param message If this parameter is not empty, PixelView::showMessage is called with message.
      * @param isEmptyAllowed If set to true, the keyboard doesn't allow an empty input
      * @param defaultText Default text that is displayed on the keyboard. It must be cleared manually to
-     * @return
+     * @return The text that is typed
      */
     String fullKeyboard(const String &message = "", bool isEmptyAllowed = false, const String &defaultText = "");
+
+    /**
+     * @brief Similar to fullKeyboard, but just has numbers (0..9)
+     *
+     * @param message If this parameter is not empty, PixelView::showMessage() is called with message
+     * @param isEmptyAllowed If set to true, the keyboard doesn't allow an empty input
+     * @param defaultText Default text that is displayed on the keyboard. It must be cleared manually to
+     * @return The text that is typed
+     */
     String numPad(const String message = "", bool isEmptyAllowed = false, const char *defaultText = "");
 
   private:
@@ -148,7 +161,7 @@ public:
 
     bool caps;
     int insertIdx;
-    PixelView &p;
+    PixelView *p;
   };
 
   /**
@@ -181,30 +194,43 @@ public:
    */
   class Pager {
   public:
-    enum class IndicatorType { DOT, NUM, NUM_ARROW, ARROW, NONE };
-    enum class PagerActionType { EXIT, CONTINUE, DISABLE_NAV, ENABLE_NAV, TOGGLE_NAV };
+    enum class IndicatorType { DOT, NUM, NUM_ARROW, ARROW, NONE }; // Types of indicators
+    enum class PagerActionType {
+      EXIT,
+      CONTINUE,
+      DISABLE_NAV,
+      ENABLE_NAV,
+      TOGGLE_NAV
+    }; // Actions that can be performed by PagerFuncs
 
-    typedef std::function<PagerActionType(U8G2 *, InputFuncType)> PageFuncType;
+    struct Page;
+
+    typedef std::function<PagerActionType(U8G2 * disp, PixelView *pv, Page* pages, size_t numPages)> PageFuncType; // Function type for each 'page'
+
+    struct Page {
+      bool enabled;
+      PageFuncType renderer;
+    };
 
   private:
-    PageFuncType *displayFunctions;
-    int numFuncs;
-    int index = 0;
+    size_t index = 0;
     PixelView *px;
 
   public:
     IndicatorType indicator;
+    Page *pages;
+    size_t numPages;
     /**
      * @constructor
      *
      * @param numFuncs The number of functions in the functions array
      * @param displayFunctions An array of functions that render pages.
      *                         Note that each function needs to return PAGER_CONTINUE by default
-     *                         Each function can return PAGER_* macros to execute actions
+     *                         Each function can return PagerActionType::* to execute actions
      *
      */
 
-    Pager(PixelView *px, int numFuncs, PageFuncType *pages, const IndicatorType indicatorType = IndicatorType::DOT);
+    Pager(PixelView *px, size_t numPages, Page *pages, const IndicatorType indicatorType = IndicatorType::DOT);
 
     /**
      * @brief Render the current page and manage input
@@ -214,8 +240,8 @@ public:
 
     /**
      * @brief Loops till functions return PAGER_EXIT
-     * @param
-     * */
+     * @param delay ms to wait  between calling render();
+     */
     void loop(int delay = 20);
   };
 
@@ -242,11 +268,20 @@ public:
    * @brief Similar to `menu` but does not have icons and also has a header
    *
    * @param header The top header above the menu
-   * @param items An array of char*. Used as the items to populate the array
+   * @param items An array of char* to display as menu items
    * @param numItems The number of items
    * @return The selected option
    */
   int subMenu(const char *header, const char *items[], unsigned int numItems, int index = 0);
+
+  /**
+   * @brief Similar to `menu` but does not have icons and also has a header
+   *
+   * @param header The top header above the menu
+   * @param items An array of String. Used as the items to populate the array
+   * @param numItems The number of items
+   * @return The selected option
+   */
   int subMenu(const char *header, const String items[], unsigned int numItems, int index = 0);
 
   int searchList(const char *header, const char *items[], unsigned int numItems, bool caseSensitive = true);
@@ -270,7 +305,7 @@ public:
    *
    * @return the selected item
    */
-  const char *radioSelect(const char *header, const char *items[], const unsigned int numItems);
+  int radioSelect(const char *header, const char *items[], const unsigned int numItems);
 
   struct checkBox {
     const char *name;
@@ -281,7 +316,7 @@ public:
    * @brief Check Boxes
    *
    * @param header String to display with highlight behind it
-   * @param items An array of `checkBox`
+   * @param items An array of `checkBox`. checkBox::isChecked is changed if the item is selected
    * @param numItems Number of items in the providied array
    */
   void checkBoxes(const char *header, checkBox items[], const unsigned int numItems);

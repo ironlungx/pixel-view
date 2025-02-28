@@ -1,12 +1,13 @@
 #include "pixelView.h"
 #include "actions.h"
+#include "clib/u8g2.h"
 #include <Arduino.h>
 #include <U8g2lib.h>
 #include <cstdio>
 
-U8G2 *PixelView::u8g2 = nullptr;
-PixelView::InputFuncType PixelView::doInput = nullptr;
-std::function<void(int32_t)> PixelView::doDelay = nullptr;
+// U8G2 *PixelView::u8g2 = nullptr;
+// PixelView::InputFuncType PixelView::doInput = nullptr;
+// std::function<void(int32_t)> PixelView::doDelay = nullptr;
 
 // Implement the constructor
 PixelView::PixelView(U8G2 *display, std::function<ActionType(void)> inputFunction, std::function<void(int)> delayer,
@@ -14,7 +15,7 @@ PixelView::PixelView(U8G2 *display, std::function<ActionType(void)> inputFunctio
     : font(font) {
   u8g2 = display;
   doInput = inputFunction;
-  doDelay = delayer;
+  this->doDelay = delayer;
 }
 
 void PixelView::wordWrap(int xloc, int yloc, const char *text, bool maintainX) {
@@ -55,6 +56,7 @@ void PixelView::wordWrap(int xloc, int yloc, const char *text, bool maintainX) {
 
 void PixelView::accentText(int x, int y, const char *text, const uint8_t font[]) {
   u8g2->setFont(font);
+  u8g2->setFontMode(false);
 
   u8g2_uint_t ascent = u8g2->getAscent();
   u8g2_uint_t descent = u8g2->getDescent();
@@ -64,10 +66,10 @@ void PixelView::accentText(int x, int y, const char *text, const uint8_t font[])
   u8g2->setDrawColor(1);
   u8g2->drawUTF8(x, y, text);
 
-  // Draw background for header
+  // Draw background for header - added +1 to width and height for full coverage
   u8g2->setDrawColor(2);
-  u8g2->drawRBox(x - 2, y - ascent - 3, headerWidth + 4, headerHeight + 2, 0);
-
+  u8g2->drawRBox(x - 3, y - ascent - 2, headerWidth + 5, headerHeight + 3, 0);
+  u8g2->setFontMode(false);
   u8g2->setDrawColor(1);
 }
 
@@ -122,13 +124,13 @@ bool PixelView::confirmYN(const char *message, bool defaultOption) {
       defaultOption = !defaultOption;
 
       while (doInput() != ActionType::NONE) {
-        doDelay(20);
+        this->doDelay(20);
       }
 
     } else {
       render2();
       while (doInput() != ActionType::NONE) {
-        doDelay(20);
+        this->doDelay(20);
       }
       render();
       this->doDelay(150);
@@ -141,7 +143,7 @@ bool PixelView::confirmYN(const char *message, bool defaultOption) {
 void PixelView::showMessage(const char *message) {
 
   while (doInput() != ActionType::NONE) {
-    doDelay(20);
+    this->doDelay(20);
   }
 
   u8g2->clearBuffer();
@@ -152,7 +154,7 @@ void PixelView::showMessage(const char *message) {
 
   u8g2->sendBuffer();
   while (doInput() != ActionType::SEL) {
-    doDelay(20);
+    this->doDelay(20);
   }
 
   u8g2->clearBuffer();
@@ -175,17 +177,17 @@ void PixelView::showMessage(const char *message) {
   this->doDelay(50);
 }
 
-PixelView::Keyboard::Keyboard(PixelView &pixelView) : caps(false), insertIdx(0), p(pixelView), currentLayer(letters) {}
+PixelView::Keyboard::Keyboard(PixelView *pixelView) : caps(false), insertIdx(0), p(pixelView), currentLayer(letters) {}
 
 void PixelView::Keyboard::renderKeyboard(int pX, int pY, const String &text) {
-  u8g2->clearBuffer();
+  this->p->u8g2->clearBuffer();
 
   // Draw grid lines
   for (int i = 9; i <= 51; i += 14) {
-    u8g2->drawLine(0, i, 128, i);
+    this->p->u8g2->drawLine(0, i, 128, i);
   }
   for (int i = 15; i <= 120; i += 12) {
-    u8g2->drawLine(i, 9, i, 64);
+    this->p->u8g2->drawLine(i, 9, i, 64);
   }
 
   // Render keys
@@ -194,126 +196,126 @@ void PixelView::Keyboard::renderKeyboard(int pX, int pY, const String &text) {
       int x = j * 12 + 7;
       int y = i * 14 + 18 + 2;
 
-      u8g2->setFont(u8g2_font_6x13_me);
+      this->p->u8g2->setFont(u8g2_font_6x13_me);
 
       if (strcmp(currentLayer[i][j], "<caps>") == 0) {
         if (caps || (j == pX && i == pY)) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "⇑");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "⇑");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "⇑");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "⇑");
         }
         continue;
       }
 
       if (strcmp(currentLayer[i][j], "<rm>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "⇐");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "⇐");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "⇐");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "⇐");
         }
         continue;
       }
 
       if (strcmp(currentLayer[i][j], "<sym1>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "#");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "#");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "#");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "#");
         }
         continue;
       }
 
       if (strcmp(currentLayer[i][j], "<sym2>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "¬");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "¬");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "¬");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "¬");
         }
         continue;
       }
 
       if (strcmp(currentLayer[i][j], "<let>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_tr);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "A");
+          this->p->u8g2->setFont(u8g2_font_6x12_tr);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "A");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "A");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "A");
         }
         continue;
       }
       if (strcmp(currentLayer[i][j], "<ques>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_tr);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "?");
+          this->p->u8g2->setFont(u8g2_font_6x12_tr);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "?");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "?");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "?");
         }
         continue;
       }
       if (strcmp(currentLayer[i][j], "<ok>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "✓");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "✓");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "✓");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "✓");
         }
         continue;
       }
       if (strcmp(currentLayer[i][j], "<clr>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "✕");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "✕");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "✕");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "✕");
         }
         continue;
       }
       if (strcmp(currentLayer[i][j], "<rev>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "©");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "©");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "©");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "©");
         }
         continue;
       }
       if (strcmp(currentLayer[i][j], "<left>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "←");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "←");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "←");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "←");
         }
         continue;
       }
       if (strcmp(currentLayer[i][j], "<right>") == 0) {
         if (j == pX && i == pY) {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "→");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, "→");
         } else {
-          u8g2->setFont(u8g2_font_6x12_t_symbols);
-          u8g2->drawUTF8(x, y, "→");
+          this->p->u8g2->setFont(u8g2_font_6x12_t_symbols);
+          this->p->u8g2->drawUTF8(x, y, "→");
         }
         continue;
       }
 
       // Draw character
-      if (j == pX && i == pY) u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, currentLayer[i][j]);
-      else u8g2->drawStr(x, y, currentLayer[i][j]);
+      if (j == pX && i == pY) this->p->u8g2->drawButtonUTF8(x, y, U8G2_BTN_INV, 0, 1, 1, currentLayer[i][j]);
+      else this->p->u8g2->drawStr(x, y, currentLayer[i][j]);
     }
   }
 
@@ -322,22 +324,22 @@ void PixelView::Keyboard::renderKeyboard(int pX, int pY, const String &text) {
     displayText = displayText.substring(text.length() - 19, text.length());
   }
 
-  u8g2->setFont(this->p.font);
-  u8g2->drawStr(2, 7, displayText.c_str());
+  this->p->u8g2->setFont(this->p->font);
+  this->p->u8g2->drawStr(2, 7, displayText.c_str());
 
   // int cursorX = (u8g2->getMaxCharWidth() * displayText.length()) + 2;
-  int cursorX = (u8g2->getUTF8Width(displayText.c_str()) + 4);
-  u8g2->drawVLine(cursorX, 0, 8);
+  int cursorX = (this->p->u8g2->getUTF8Width(displayText.c_str()) + 4);
+  this->p->u8g2->drawVLine(cursorX, 0, 8);
 
-  u8g2->sendBuffer();
+  this->p->u8g2->sendBuffer();
 }
 
 String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, const char *defaultText) {
-  while (doInput() != ActionType::NONE) {
-    doDelay(20);
+  while (this->p->doInput() != ActionType::NONE) {
+    this->p->doDelay(20);
   }
 
-  if (message.length() != 0) p.showMessage(message.c_str());
+  if (message.length() != 0) p->showMessage(message.c_str());
 
   short indexX = 0;
   short indexY = 0;
@@ -349,25 +351,24 @@ String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, co
    */
 
   while (true) {
-    u8g2->clearBuffer();
-    u8g2->setFontMode(1);
-    u8g2->setBitmapMode(1);
-    u8g2->setFont(u8g2_font_profont12_tf);
+    p->u8g2->clearBuffer();
+    p->u8g2->setBitmapMode(1);
+    p->u8g2->setFont(u8g2_font_profont12_tf);
     for (int i = 0; i <= 3; i++) {
       for (int j = 0; j <= 2; j++) {
-        u8g2->drawUTF8((j + 1) * 12 - 4, (i + 1) * 12 + 7, numpad[i][j]);
+        p->u8g2->drawUTF8((j + 1) * 12 - 4, (i + 1) * 12 + 7, numpad[i][j]);
       }
     }
 
-    u8g2->drawRFrame(4, 8, 37, 50, 0);
-    u8g2->setFont(u8g2_font_haxrcorp4089_tr);
-    this->p.wordWrap(50, 21, text.c_str(), true);
+    p->u8g2->drawRFrame(4, 8, 37, 50, 0);
+    p->u8g2->setFont(u8g2_font_haxrcorp4089_tr);
+    this->p->wordWrap(50, 21, text.c_str(), true);
 
-    u8g2->setDrawColor(2);
-    u8g2->drawBox((indexX + 1) * 12 - 4 - 2, ((indexY + 1) * 12 + 7 - 9), 9, 10);
-    u8g2->sendBuffer();
+    p->u8g2->setDrawColor(2);
+    p->u8g2->drawBox((indexX + 1) * 12 - 4 - 2, ((indexY + 1) * 12 + 7 - 9), 9, 10);
+    p->u8g2->sendBuffer();
 
-    ActionType action = doInput();
+    ActionType action = p->doInput();
     if (action == ActionType::UP) {
       indexY = max(0, indexY - 1);
     }
@@ -385,12 +386,12 @@ String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, co
       indexX = min(2, indexX + 1);
     }
     if (action == ActionType::SEL) {
-      while (doInput() != ActionType::NONE) {
-        doDelay(20);
+      while (p->doInput() != ActionType::NONE) {
+        p->doDelay(20);
       }
       if (strcmp(numpad[indexY][indexX], "\u0087") == 0) {
         if ((text.length() <= 0) && (isEmptyAllowed == false)) {
-          p.showMessage("Error: Cannot be empty");
+          p->showMessage("Error: Cannot be empty");
           goto skip_append;
         } else {
           break;
@@ -403,16 +404,16 @@ String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, co
       }
     }
   skip_append:
-    doDelay(100);
+    p->doDelay(100);
   }
   return text;
 }
 
 String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllowed, const String &defaultText) {
-  while (doInput() != ActionType::NONE) {
-    doDelay(20);
+  while (p->doInput() != ActionType::NONE) {
+    this->p->doDelay(20);
   }
-  if (message.length() != 0) p.showMessage(message.c_str());
+  if (message.length() != 0) p->showMessage(message.c_str());
 
   String text = defaultText;
   insertIdx = text.length();
@@ -425,7 +426,7 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
   while (!exit) {
     renderKeyboard(pointerX, pointerY, text);
 
-    action = doInput();
+    action = p->doInput();
     switch (action) {
     case ActionType::LEFT: {
       pointerX = max(0, pointerX - 1);
@@ -448,8 +449,8 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
     }
 
     if (action == ActionType::SEL) {
-      while (doInput() != ActionType::NONE) {
-        doDelay(20);
+      while (p->doInput() != ActionType::NONE) {
+        p->doDelay(20);
       }
       if (strcmp(currentLayer[pointerY][pointerX], "<caps>") == 0) {
         if (!caps) currentLayer = capitalLetters;
@@ -492,30 +493,30 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
       }
 
       if (strcmp(currentLayer[pointerY][pointerX], "<ok>") == 0) {
-        if (isEmptyAllowed == false && text.length() == 0) p.showMessage("ERROR: Text cannot be empty");
+        if (isEmptyAllowed == false && text.length() == 0) p->showMessage("ERROR: Text cannot be empty");
         else exit = true;
         goto skip_append;
       }
 
       if (strcmp(currentLayer[pointerY][pointerX], "<rev>") == 0) {
         // Preview the current text
-        u8g2->clearBuffer();
-        u8g2->setFont(u8g2_font_6x12_tr);
-        p.wordWrap(2, 7, text.length() == 0 ? "No text input" : text.c_str());
-        u8g2->sendBuffer();
+        p->u8g2->clearBuffer();
+        p->u8g2->setFont(u8g2_font_6x12_tr);
+        p->wordWrap(2, 7, text.length() == 0 ? "No text input" : text.c_str());
+        p->u8g2->sendBuffer();
 
-        while (doInput() != ActionType::SEL) {
-          doDelay(20);
+        while (p->doInput() != ActionType::SEL) {
+          p->doDelay(20);
         }
-        while (doInput() != ActionType::NONE) {
-          doDelay(20);
+        while (p->doInput() != ActionType::NONE) {
+          p->doDelay(20);
         }
 
         goto skip_append;
       }
 
       if (strcmp(currentLayer[pointerY][pointerX], "<clr>") == 0) {
-        if (p.confirmYN("Clear text?")) {
+        if (p->confirmYN("Clear text?")) {
           text = "";
           insertIdx = 0;
         }
@@ -523,7 +524,7 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
       }
 
       if (strcmp(currentLayer[pointerY][pointerX], "<ques>") == 0) {
-        if (message.length() != 0) p.showMessage(message.c_str());
+        if (message.length() != 0) p->showMessage(message.c_str());
         goto skip_append;
       }
 
@@ -540,43 +541,54 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
     }
   skip_append:
 
-    doDelay(100);
+    p->doDelay(100);
   }
 
   return text;
 }
 
-PixelView::Pager::Pager(PixelView *px, int numFuncs, PixelView::Pager::PageFuncType *pages,
+PixelView::Pager::Pager(PixelView *px, size_t numPages, PixelView::Pager::Page *pages,
                         const PixelView::Pager::IndicatorType indicatorType) {
   this->px = px;
-  this->numFuncs = numFuncs;
-  this->displayFunctions = pages;
+  this->numPages = numPages;
+  this->pages = pages;
   this->indicator = indicatorType;
 }
 
 PixelView::Pager::PagerActionType PixelView::Pager::render() {
   static bool navEnabled = true;
+  size_t originalIndex;
+  
+  // Skip disabled pages when starting render
+  if (!pages[index].enabled) {
+    // Find next enabled page
+    originalIndex = index;
+    do {
+      index = (index + 1) % numPages;
+    } while (!pages[index].enabled && index != originalIndex);
+    
+    // If we wrapped around and found no enabled pages, return
+    if (!pages[index].enabled) {
+      return PagerActionType::CONTINUE;
+    }
+  }
 
-  u8g2->clearBuffer();
-  PagerActionType returnVal = displayFunctions[index](u8g2, doInput);
-
+  px->u8g2->clearBuffer();
+  PagerActionType returnVal = this->pages[index].renderer(this->px->u8g2, this->px, this->pages, this->numPages);
+  
   switch (returnVal) {
   case PagerActionType::DISABLE_NAV: {
     navEnabled = false;
   } break;
-
   case PagerActionType::ENABLE_NAV: {
     navEnabled = true;
   } break;
-
   case PagerActionType::TOGGLE_NAV: {
     navEnabled = !navEnabled;
   } break;
-
   case PagerActionType::CONTINUE: {
     // No action requested, continue
   } break;
-
   case PagerActionType::EXIT: {
     //////////////////////////////////////////////////////////////////////////////////////////
     // EXIT should be handled by the top level function (aka whoever is calling this function)
@@ -585,75 +597,93 @@ PixelView::Pager::PagerActionType PixelView::Pager::render() {
   }
 
   if (!navEnabled) {
-    u8g2->sendBuffer();
+    px->u8g2->sendBuffer();
     return returnVal;
   }
 
   switch (this->indicator) {
   case IndicatorType::DOT: {
-    u8g2->setFont(u8g2_font_unifont_t_75);
+    px->u8g2->setFont(u8g2_font_unifont_t_75);
     String str;
-    for (int i = 0; i < numFuncs; i++)
-      str += ((i == index) ? "●" : "○");
-
-    int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(str.c_str()))) / 2;
-    u8g2->drawUTF8(centerX, 64, str.c_str());
+    for (int i = 0; i < numPages; i++) {
+      if (pages[i].enabled) {  // Only show dots for enabled pages
+        str += ((i == index) ? "●" : "○");
+      }
+    }
+    int centerX = (px->u8g2->getDisplayWidth() - (px->u8g2->getUTF8Width(str.c_str()))) / 2;
+    px->u8g2->drawUTF8(centerX, 64, str.c_str());
     break;
   }
   case IndicatorType::NUM: {
-    u8g2->setFont(u8g2_font_6x12_tr);
+    px->u8g2->setFont(u8g2_font_6x12_tr);
+    // Count enabled pages
+    size_t enabledCount = 0;
+    size_t currentEnabledIndex = 0;
+    for (size_t i = 0; i < numPages; i++) {
+      if (pages[i].enabled) {
+        enabledCount++;
+        if (i <= index) currentEnabledIndex = enabledCount;
+      }
+    }
     char buf[64];
-    sprintf(buf, "%d of %d", index + 1, numFuncs);
-    int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
-
-    u8g2->drawStr(centerX, 64, buf);
+    sprintf(buf, "%zu of %zu", currentEnabledIndex, enabledCount);
+    int centerX = (px->u8g2->getDisplayWidth() - (px->u8g2->getUTF8Width(buf))) / 2;
+    px->u8g2->drawStr(centerX, 64, buf);
     break;
   }
   case IndicatorType::NUM_ARROW: {
-    u8g2->setFont(u8g2_font_6x12_tr);
+    px->u8g2->setFont(u8g2_font_6x12_tr);
+    // Count enabled pages similar to NUM case
+    size_t enabledCount = 0;
+    size_t currentEnabledIndex = 0;
+    for (size_t i = 0; i < numPages; i++) {
+      if (pages[i].enabled) {
+        enabledCount++;
+        if (i <= index) currentEnabledIndex = enabledCount;
+      }
+    }
     char buf[64];
-    sprintf(buf, "< %d of %d >", index + 1, numFuncs);
-    int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
-
-    u8g2->drawStr(centerX, 64, buf);
+    sprintf(buf, "< %zu of %zu >", currentEnabledIndex, enabledCount);
+    int centerX = (px->u8g2->getDisplayWidth() - (px->u8g2->getUTF8Width(buf))) / 2;
+    px->u8g2->drawStr(centerX, 64, buf);
     break;
   }
   case IndicatorType::ARROW: {
-    u8g2->setFont(u8g2_font_6x12_tr);
+    px->u8g2->setFont(u8g2_font_6x12_tr);
     const char *buf = "<      >";
-    int centerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(buf))) / 2;
-    u8g2->drawStr(centerX, 64, buf);
+    int centerX = (px->u8g2->getDisplayWidth() - (px->u8g2->getUTF8Width(buf))) / 2;
+    px->u8g2->drawStr(centerX, 64, buf);
     break;
   }
   case IndicatorType::NONE:
     break;
   }
 
-  u8g2->sendBuffer();
-
-  ActionType input = doInput();
+  px->u8g2->sendBuffer();
+  ActionType input = px->doInput();
 
   if ((input == ActionType::LEFT) || (input == ActionType::UP)) {
-    index--;
-    while (doInput() != ActionType::NONE)
-      doDelay(100);
+    // Find previous enabled page
+    do {
+      index = (index == 0) ? numPages - 1 : index - 1;
+    } while (!pages[index].enabled && index != originalIndex);
+    
+    while (px->doInput() != ActionType::NONE)
+      this->px->doDelay(100);
   }
 
   if ((input == ActionType::RIGHT) || (input == ActionType::DOWN)) {
-    index++;
-    while (doInput() != ActionType::NONE)
-      doDelay(100);
-  }
-
-  if (index < 0) {
-    index = numFuncs - 1; // Wrap around to the last element
-  } else if (index >= numFuncs) {
-    index = 0; // Wrap around to the first element
+    // Find next enabled page
+    do {
+      index = (index + 1) % numPages;
+    } while (!pages[index].enabled && index != originalIndex);
+    
+    while (px->doInput() != ActionType::NONE)
+      this->px->doDelay(100);
   }
 
   return returnVal;
 }
-
 void PixelView::Pager::loop(int delay) {
   while (true) {
     if (render() == PagerActionType::EXIT) {
@@ -731,7 +761,6 @@ int PixelView::menu(menuItem items[], unsigned int numItems, int index) {
     if (nextItem >= numItems) nextItem = 0;
 
     u8g2->clearBuffer();
-    u8g2->setFontMode(1);
     u8g2->setBitmapMode(1);
 
     u8g2->drawXBMP(4, 2, 16, 16, items[prevItem].icon);
@@ -803,7 +832,6 @@ int PixelView::subMenu(const char *header, const char *items[], unsigned int num
     if (nextItem >= numItems) nextItem = 0;
 
     u8g2->clearBuffer();
-    u8g2->setFontMode(1);
     // u8g2->setBitmapMode(1);
     u8g2->setDrawColor(1);
 
@@ -874,7 +902,6 @@ int PixelView::subMenu(const char *header, const String items[], unsigned int nu
     if (nextItem >= numItems) nextItem = 0;
 
     u8g2->clearBuffer();
-    u8g2->setFontMode(1);
     // u8g2->setBitmapMode(1);
     u8g2->setDrawColor(1);
 
@@ -918,6 +945,20 @@ void PixelView::search(const char *items[], unsigned int numItems, const char *q
   }
 }
 
+void PixelView::search(const String items[], unsigned int numItems, const char *query, const char *result[],
+                       unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive) {
+  auto cmpstr = caseSensitive ? strstr : strcasestr;
+
+  *resultCount = 0;
+  for (unsigned int i = 0; i < numItems; i++) {
+    if (cmpstr(items[i].c_str(), query)) {
+      result[*resultCount] = items[i].c_str();
+      resultIndices[*resultCount] = i; // Store original index
+      (*resultCount)++;
+    }
+  }
+}
+
 int PixelView::searchList(const char *header, const char *items[], unsigned int numItems, bool caseSensitive) {
   int itemSelected = 0;
   int prevItem;
@@ -931,7 +972,7 @@ int PixelView::searchList(const char *header, const char *items[], unsigned int 
   unsigned int resultIndices[numItems]; // Maps filtered results back to original indices
   search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
 
-  PixelView::Keyboard kbd(*this);
+  PixelView::Keyboard kbd(this);
 
   while (true) {
     ActionType input = doInput();
@@ -991,7 +1032,6 @@ int PixelView::searchList(const char *header, const char *items[], unsigned int 
     if (nextItem >= resultCount) nextItem = 0;
 
     u8g2->clearBuffer();
-    u8g2->setFontMode(1);
     // u8g2->setBitmapMode(1);
     u8g2->setDrawColor(1);
 
@@ -1024,7 +1064,110 @@ int PixelView::searchList(const char *header, const char *items[], unsigned int 
   }
 }
 
-int PixelView::searchList(const char *header, const String items[], unsigned int numItems, bool caseSensitive) {}
+int PixelView::searchList(const char *header, const String items[], unsigned int numItems, bool caseSensitive) {
+  int itemSelected = 0;
+  int prevItem;
+  int nextItem;
+
+  String query = "";
+
+  unsigned int resultCount;
+  const char *result[numItems];
+
+  unsigned int resultIndices[numItems]; // Maps filtered results back to original indices
+  search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
+
+  PixelView::Keyboard kbd(this);
+
+  while (true) {
+    ActionType input = doInput();
+
+    if (input == ActionType::UP) {
+      itemSelected--;
+      if (itemSelected < 0) itemSelected = resultCount - 1;
+      while (doInput() != ActionType::NONE) {
+        doDelay(70);
+      }
+    }
+
+    if (input == ActionType::DOWN) {
+      itemSelected++;
+      if (itemSelected >= resultCount) itemSelected = 0;
+      while (doInput() != ActionType::NONE) {
+        doDelay(70);
+      }
+      while (doInput() != ActionType::NONE)
+        ;
+    }
+
+    if (input == ActionType::SEL) {
+      int startMS = millis();
+      while (doInput() != ActionType::NONE) {
+        doDelay(70);
+      }
+
+      const char *options[] = {"Select this", "Edit search query", "Back"};
+      int c = this->subMenu("Choose an action", options, 3);
+
+      if (c == 0) {
+        return resultIndices[itemSelected];
+      }
+
+      if (c == 1) {
+        query = kbd.fullKeyboard("", true, query); // TODO: add keyboard fuction here
+        search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
+        itemSelected = 0;
+      }
+
+      while (doInput() != ActionType::NONE) {
+        doDelay(70);
+      }
+    }
+
+    if (resultCount == 0) {
+      query = kbd.fullKeyboard(String("No results for: " + query), true, query); // TODO: add keyboard fuction here
+      search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
+      continue;
+    }
+
+    prevItem = itemSelected - 1;
+    if (prevItem < 0) prevItem = resultCount - 1;
+
+    nextItem = itemSelected + 1;
+    if (nextItem >= resultCount) nextItem = 0;
+
+    u8g2->clearBuffer();
+    // u8g2->setBitmapMode(1);
+    u8g2->setDrawColor(1);
+
+    u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
+
+    int scrollbarH = max(2, (int)(64 / resultCount));
+    int scrollbarY;
+
+    // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
+    /* else */ scrollbarY = (64.0 / resultCount) * itemSelected;
+
+    u8g2->drawRBox(125, scrollbarY, 3, scrollbarH, 1);
+
+    u8g2->setFont(u8g2_font_helvB08_tr);
+    char buf[64];
+    snprintf(buf, 64, "%s (%d/%d)", header, resultCount, numItems);
+    u8g2->drawStr(1, 11, buf);
+
+    u8g2->setFont(u8g2_font_helvR08_tr);
+    u8g2->drawStr(8, 28, result[prevItem]);
+    u8g2->drawStr(8, 44, result[itemSelected]);
+    u8g2->drawStr(8, 60, result[nextItem]);
+
+    u8g2->setDrawColor(2);
+    u8g2->drawRBox(2, 33, 121, 15, 1);
+    u8g2->sendBuffer();
+    u8g2->setDrawColor(1);
+
+    doDelay(50);
+  }
+}
 
 int PixelView::gridMenu(const unsigned char *icon[], int numItems) {
   int selected = 0;
@@ -1086,7 +1229,8 @@ int PixelView::gridMenu(const unsigned char *icon[], int numItems) {
       doDelay(50);
   }
 }
-const char *PixelView::radioSelect(const char *header, const char *items[], const unsigned int numItems) {
+
+int PixelView::radioSelect(const char *header, const char *items[], const unsigned int numItems) {
   int selected = 0;
   int startIndex = 0;
   const int itemsPerPage = 4;
@@ -1160,7 +1304,7 @@ const char *PixelView::radioSelect(const char *header, const char *items[], cons
       while (doInput() != ActionType::NONE) {
         doDelay(20);
       }
-      return items[selected]; // Return the selected item
+      return selected; // Return the selected item's index
     }
 
     // Ensure startIndex stays within bounds
@@ -1386,6 +1530,7 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
     } // Wait for no input
   } while (true);
 }
+
 void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[],
                             unsigned int numItems, ListType displayType) {
 
@@ -1494,28 +1639,30 @@ void PixelView::progressBar(int progress, const char *header, const unsigned cha
   u8g2->clearBuffer();
   u8g2->setFont(u8g2_font_helvB08_tr);
 
+  // Calculate header width and position
   int headerWidth = u8g2->getUTF8Width(header);
-  int headerX = (u8g2->getDisplayWidth() - (u8g2->getUTF8Width(header))) / 2;
-  int headerHeight = u8g2->getMaxCharHeight(); // Assuming header takes up one line
+  int headerX = (u8g2->getDisplayWidth() - headerWidth) / 2;
+  int headerHeight = u8g2->getMaxCharHeight();
 
-  u8g2->drawStr(headerX + 2, headerHeight,
-                header); // Draw header at the top
+  // Draw accent text
+  accentText(headerX, headerHeight, header, u8g2_font_helvB08_tr);
 
-  u8g2->setDrawColor(2);
-  u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
-  u8g2->setDrawColor(1);
-
+  // Draw progress bar frame and filled box
   u8g2->drawFrame(2, 35, 124, 17);
   u8g2->drawBox(4, 37, map(progress, 0, 100, 0, 120), 13);
+
+  // Set font for progress percentage
   u8g2->setFont(u8g2_font_haxrcorp4089_tr);
 
+  // Display progress percentage
   char buf[32];
-
   sprintf(buf, "%d%%", progress);
 
   int textWidth = u8g2->getStrWidth(buf);
   int x = (u8g2->getDisplayWidth() - textWidth) / 2; // Centering the text
   u8g2->drawStr(x, 30, buf);
+
+  // Send buffer to display
   u8g2->sendBuffer();
 }
 
