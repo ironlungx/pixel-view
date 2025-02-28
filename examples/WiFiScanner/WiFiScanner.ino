@@ -51,8 +51,9 @@ ActionType sendInput() {
   return ActionType::NONE;
 }
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
-PixelView pixelview(&u8g2, sendInput, delay, u8g2_font_haxrcorp4089_tr);
-PixelView::Keyboard keyboard(pixelview);
+PixelView pixelview(&u8g2, sendInput, delay, u8g2_font_haxrcorp4089_tr); // use vTaskDelay instead of delay if you are on FreeRTOS(ESP32)
+
+PixelView::Keyboard keyboard(&pixelview);
 
 void wifiScanner(PixelView *pv, PixelView::Keyboard *kyb, U8G2 *u8g2) {
   WiFi.mode(WIFI_STA);

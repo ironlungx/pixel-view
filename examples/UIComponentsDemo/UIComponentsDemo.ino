@@ -1,4 +1,4 @@
-#include <Arduino.h>    // Not strictly needed, but it's good on platformIO based envs.
+#include <Arduino.h> // Not strictly needed, but it's good on platformIO based envs.
 #include <U8g2lib.h>
 
 #include <pixelView.h>
@@ -64,7 +64,7 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 // You can also specify a font parameter. by default a 6x12 font is used.
 PixelView pixelview(&u8g2, sendInput, delay, u8g2_font_haxrcorp4089_tr);
 
-PixelView::Keyboard kbd(pixelview);
+PixelView::Keyboard kbd(&pixelview);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -189,17 +189,18 @@ PixelView::menuItem m[] = {{"Keyboard", bmp_keyboard}, {"Pagination", bmp_pagina
 void loop() {
 
   // Do not let any stray input through
-  while (sendInput() != ActionType::NONE)
+  while (pixelview.doInput() != ActionType::NONE)
     ;
 
   // Call the menu function for the UI elements declared above
   //
-  // Returns the `menuItem` that was selected
-  static int choice;
+
+  // Returns the index of the selected item in the provided arrayyu
+  static int choice; // It's static because we want to save the state throughout the loop 
   choice = pixelview.menu(m, LEN(m), choice);
 
   // Flush away any stray input
-  while (sendInput() != ActionType::NONE)
+  while (pixelview.doInput() != ActionType::NONE)
     ;
 
   if (choice == 0) { // KEYBOARD
@@ -225,6 +226,10 @@ void loop() {
 
   } else if (choice == 1) { //  PAGINATION
 
+    // Easier type specification
+    using PagerActionType = PixelView::Pager::PagerActionType;
+    using Page = PixelView::Pager::Page;
+
     // Local functions for different "pages" in the paged navigation
     // Each function MUST return one of the following:
     //    - PAGER_CONTINUE
@@ -233,33 +238,45 @@ void loop() {
     //    - PAGER_DISABLE_NAV
     //    - PAGER_ENABLE_NAV
     //
-    auto f1 = [](U8G2 *disp, PixelView::InputFuncType) {
+    auto f1 = [](U8G2 *disp, PixelView *pv, Page *pages, size_t numPages) {
       disp->setFont(u8g2_font_haxrcorp4089_tr);
       disp->drawStr(0, 10, "This is page One!");
+      pv->accentText(3, 22, "PixelView methods also work", u8g2_font_haxrcorp4089_tr);
 
-      return PixelView::Pager::PagerActionType::CONTINUE;
+      return PagerActionType::CONTINUE;
     };
 
-    auto f2 = [](U8G2 *disp, PixelView::InputFuncType) {
+    auto f2 = [](U8G2 *disp, PixelView *pv, Page *pages, size_t numPages) {
       disp->setFont(u8g2_font_haxrcorp4089_tr);
       disp->drawStr(0, 10, "This is page Two");
+      disp->drawStr(0, 20, "Press OK to toggle Page 3");
+      disp->drawStr(0, 30, "Use Page 3 to exit");
 
-      return PixelView::Pager::PagerActionType::CONTINUE;
+      if (pv->doInput() == ActionType::SEL) {
+        pages[2].enabled = !pages[2].enabled; // Change the 'enabled' field of the 3rd page
+
+        while (pv->doInput() != ActionType::NONE)   // Wait for all inputs to clear
+          pv->doDelay(20);
+      }
+
+      return PagerActionType::CONTINUE;
     };
 
-    auto f3 = [](U8G2 *disp, PixelView::InputFuncType ip) {
+    auto f3 = [](U8G2 *disp, PixelView *pv, Page *pages, size_t numPages) {
       disp->setFont(u8g2_font_haxrcorp4089_tr);
       disp->drawStr(0, 10, "Press OK to exit");
 
-      if (ip() == ActionType::SEL) {
+      if (pv->doInput() == ActionType::SEL) {
         return PixelView::Pager::PagerActionType::EXIT;
       }
 
-      return PixelView::Pager::PagerActionType::CONTINUE;
+      return PagerActionType::CONTINUE;
     };
 
-    // Ugly way of defining an array of the functions we made above
-    PixelView::Pager::PageFuncType functions[] = {f1, f2, f3};
+    // Each Page has two objects: isEnabled & render
+    //
+    // You can change Page::isEnabled runtime from each Page (because of Pages* being an argument)
+    Page functions[] = {{true, f1}, {true, f2}, {true, f3}};
     PixelView::Pager p(&pixelview, LEN(functions), functions, PixelView::Pager::IndicatorType::DOT);
 
     p.loop();
@@ -283,28 +300,28 @@ void loop() {
 
     pixelview.checkBoxes("Check box demo", c, LEN(c));
 
-  } else if (choice == 6) {  // LIST BROWSER
+  } else if (choice == 6) { // LIST BROWSER
 
     const char *options[] = {"a lot of text", "0xFF", "0x21", "www.google.com", "github.com"};
 
     pixelview.listBrowser("List Browser Demo", bmp_list, options, LEN(options), PixelView::ListType::NUMBER);
-  } else if (choice == 7) {   // PROGRESS BAR
+  } else if (choice == 7) { // PROGRESS BAR
 
     int i = 0;
-    while (sendInput() != ActionType::SEL) {
+    while (pixelview.doInput() != ActionType::SEL) {
       pixelview.progressBar(i, "Progress Bar demo");
       i++;
       if (i > 100) {
         i = 0;
       }
-      delay(30);
+      pixelview.doDelay(30);
     }
-  } else if (choice == 8) {  // DIALOG BOX
+  } else if (choice == 8) { // DIALOG BOX
 
     bool exit = false;
     while (!exit) {
 
-      while (sendInput() != ActionType::NONE)
+      while (pixelview.doInput() != ActionType::NONE)
         ;
       const char *types[] = {"Yes/No Dialog", "Ok Dialog", "Back"};
       int choice = pixelview.subMenu("Dialog Demo", types, LEN(types));
@@ -315,4 +332,3 @@ void loop() {
     }
   }
 }
-

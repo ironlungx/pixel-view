@@ -27,7 +27,7 @@ ActionType sendInput() {
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 PixelView pv(&u8g2, sendInput, delay, u8g2_font_haxrcorp4089_tr); // Change delay to vTaskDelay(..) if using esp32 (optional, but needed if you are using
-PixelView::Keyboard kyb(pv);
+PixelView::Keyboard kyb(&pv);
 
 enum Operation { MULTIPLY = 0, DIVIDE = 1, ADD = 2, SUBTRACT = 3 };
 
