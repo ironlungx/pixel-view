@@ -547,7 +547,7 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
   return text;
 }
 
-PixelView::Pager::Pager(PixelView *px, size_t numPages, PixelView::Pager::Page *pages,
+PixelView::Pager::Pager(PixelView *px, const size_t numPages, PixelView::Pager::Page *pages,
                         const PixelView::Pager::IndicatorType indicatorType) {
   this->px = px;
   this->numPages = numPages;
@@ -720,7 +720,7 @@ static const unsigned char bitmap_scrollbar_background_full[] U8X8_PROGMEM = {
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40,
     0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x40, 0x00, 0x00};
 
-int PixelView::menu(menuItem items[], unsigned int numItems, int index) {
+int PixelView::menu(menuItem items[], const size_t numItems, int index) {
   int itemSelected = index;
   int prevItem;
   int nextItem;
@@ -792,7 +792,7 @@ int PixelView::menu(menuItem items[], unsigned int numItems, int index) {
   }
 }
 
-int PixelView::subMenu(const char *header, const char *items[], unsigned int numItems, int index) {
+int PixelView::subMenu(const char *header, const char *items[], const size_t numItems, int index) {
   int itemSelected = index;
   int prevItem;
   int nextItem;
@@ -862,7 +862,7 @@ int PixelView::subMenu(const char *header, const char *items[], unsigned int num
   }
 }
 
-int PixelView::subMenu(const char *header, const String items[], unsigned int numItems, int index) {
+int PixelView::subMenu(const char *header, const String items[], const size_t numItems, int index) {
   int itemSelected = index;
   int prevItem;
   int nextItem;
@@ -931,8 +931,8 @@ int PixelView::subMenu(const char *header, const String items[], unsigned int nu
     doDelay(50);
   }
 }
-void PixelView::search(const char *items[], unsigned int numItems, const char *query, const char *result[],
-                       unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive) {
+void PixelView::search(const char *items[], const size_t numItems, const char *query, const char *result[],
+                       size_t *resultCount, size_t resultIndices[], bool caseSensitive) {
   auto cmpstr = caseSensitive ? strstr : strcasestr;
 
   *resultCount = 0;
@@ -945,8 +945,8 @@ void PixelView::search(const char *items[], unsigned int numItems, const char *q
   }
 }
 
-void PixelView::search(const String items[], unsigned int numItems, const char *query, const char *result[],
-                       unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive) {
+void PixelView::search(const String items[], const size_t numItems, const char *query, const char *result[],
+                       size_t *resultCount, size_t resultIndices[], bool caseSensitive) {
   auto cmpstr = caseSensitive ? strstr : strcasestr;
 
   *resultCount = 0;
@@ -959,17 +959,17 @@ void PixelView::search(const String items[], unsigned int numItems, const char *
   }
 }
 
-int PixelView::searchList(const char *header, const char *items[], unsigned int numItems, bool caseSensitive) {
+int PixelView::searchList(const char *header, const char *items[], const size_t numItems, bool caseSensitive) {
   int itemSelected = 0;
   int prevItem;
   int nextItem;
 
   String query = "";
 
-  unsigned int resultCount;
+  size_t resultCount;
   const char *result[numItems];
 
-  unsigned int resultIndices[numItems]; // Maps filtered results back to original indices
+  size_t resultIndices[numItems]; // Maps filtered results back to original indices
   search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
 
   PixelView::Keyboard kbd(this);
@@ -1047,7 +1047,7 @@ int PixelView::searchList(const char *header, const char *items[], unsigned int 
 
     u8g2->setFont(u8g2_font_helvB08_tr);
     char buf[64];
-    snprintf(buf, 64, "%s (%d/%d)", header, resultCount, numItems);
+    snprintf(buf, 64, "%s (%zu/%zu)", header, resultCount, numItems);
     u8g2->drawStr(1, 11, buf);
 
     u8g2->setFont(u8g2_font_helvR08_tr);
@@ -1064,17 +1064,17 @@ int PixelView::searchList(const char *header, const char *items[], unsigned int 
   }
 }
 
-int PixelView::searchList(const char *header, const String items[], unsigned int numItems, bool caseSensitive) {
+int PixelView::searchList(const char *header, const String items[], const size_t numItems, bool caseSensitive) {
   int itemSelected = 0;
   int prevItem;
   int nextItem;
 
   String query = "";
 
-  unsigned int resultCount;
+  size_t resultCount;
   const char *result[numItems];
 
-  unsigned int resultIndices[numItems]; // Maps filtered results back to original indices
+  size_t resultIndices[numItems]; // Maps filtered results back to original indices
   search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
 
   PixelView::Keyboard kbd(this);
@@ -1152,7 +1152,7 @@ int PixelView::searchList(const char *header, const String items[], unsigned int
 
     u8g2->setFont(u8g2_font_helvB08_tr);
     char buf[64];
-    snprintf(buf, 64, "%s (%d/%d)", header, resultCount, numItems);
+    snprintf(buf, 64, "%s (%zu/%zu)", header, resultCount, numItems);
     u8g2->drawStr(1, 11, buf);
 
     u8g2->setFont(u8g2_font_helvR08_tr);
@@ -1169,7 +1169,7 @@ int PixelView::searchList(const char *header, const String items[], unsigned int
   }
 }
 
-int PixelView::gridMenu(const unsigned char *icon[], int numItems) {
+int PixelView::gridMenu(const unsigned char *icon[], const size_t numItems) {
   int selected = 0;
   int itemsPerRow = 6;                                   // Adjust based on your layout
   int rows = (numItems + itemsPerRow - 1) / itemsPerRow; // Calculate total rows
@@ -1230,7 +1230,7 @@ int PixelView::gridMenu(const unsigned char *icon[], int numItems) {
   }
 }
 
-int PixelView::radioSelect(const char *header, const char *items[], const unsigned int numItems) {
+int PixelView::radioSelect(const char *header, const char *items[], const size_t numItems) {
   int selected = 0;
   int startIndex = 0;
   const int itemsPerPage = 4;
@@ -1322,7 +1322,7 @@ int PixelView::radioSelect(const char *header, const char *items[], const unsign
   }
 }
 
-void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned int numItems) {
+void PixelView::checkBoxes(const char *header, checkBox items[], const size_t numItems) {
   int selected = 0;
   int startIndex = 0;
   const int itemsPerPage = 4;
@@ -1428,7 +1428,7 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const unsigned 
 }
 
 void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const String items[],
-                            unsigned int numItems, ListType displayType) {
+                            const size_t numItems, ListType displayType) {
 
   unsigned int offset = 0; // Offset for scrolling
   int displayHeight = u8g2->getDisplayHeight();
@@ -1532,7 +1532,7 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
 }
 
 void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[],
-                            unsigned int numItems, ListType displayType) {
+                            const size_t numItems, ListType displayType) {
 
   unsigned int offset = 0; // Offset for scrolling
   int displayHeight = u8g2->getDisplayHeight();

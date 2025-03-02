@@ -12,8 +12,10 @@
 #define PAGE_NONE_NAV 5
 
 /* IDEAS:
- *    - Have some 'non-blocking' functions for Pager 
- *    -
+ *    - Have some 'non-blocking' functions for Pager
+ *    - Vertical indicator for Pager
+ *
+ *    - Carousel view with big icons (64x64 maybe)
  *
  * */
 
@@ -32,12 +34,11 @@ private:
    */
   U8G2 *u8g2;
 
-  void search(const char *items[], unsigned int numItems, const char *query, const char *result[],
-              unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive = true);
+  void search(const char *items[], const size_t numItems, const char *query, const char *result[],
+              size_t *resultCount, size_t resultIndices[], bool caseSensitive = true);
 
-  void search(const String items[], unsigned int numItems, const char *query, const char *result[],
-              unsigned int *resultCount, unsigned int resultIndices[], bool caseSensitive = true);
-
+  void search(const String items[], const size_t numItems, const char *query, const char *result[],
+              size_t *resultCount, size_t resultIndices[], bool caseSensitive = true);
 
   const uint8_t *font;
 
@@ -195,6 +196,7 @@ public:
   class Pager {
   public:
     enum class IndicatorType { DOT, NUM, NUM_ARROW, ARROW, NONE }; // Types of indicators
+
     enum class PagerActionType {
       EXIT,
       CONTINUE,
@@ -205,7 +207,8 @@ public:
 
     struct Page;
 
-    typedef std::function<PagerActionType(U8G2 * disp, PixelView *pv, Page* pages, size_t numPages)> PageFuncType; // Function type for each 'page'
+    typedef std::function<PagerActionType(U8G2 *disp, PixelView *pv, Page *pages, const size_t numPages)>
+        PageFuncType; // Function type for each 'page'
 
     struct Page {
       bool enabled;
@@ -230,7 +233,7 @@ public:
      *
      */
 
-    Pager(PixelView *px, size_t numPages, Page *pages, const IndicatorType indicatorType = IndicatorType::DOT);
+    Pager(PixelView *px, const size_t numPages, Page *pages, const IndicatorType indicatorType = IndicatorType::DOT);
 
     /**
      * @brief Render the current page and manage input
@@ -263,7 +266,8 @@ public:
    * @param numItems The number of items in `items`
    * @return the selected menuItem's index
    */
-  int menu(menuItem items[], unsigned int numItems, int index = 0);
+  int menu(menuItem items[], const size_t numItems, int index = 0);
+
   /**
    * @brief Similar to `menu` but does not have icons and also has a header
    *
@@ -272,7 +276,7 @@ public:
    * @param numItems The number of items
    * @return The selected option
    */
-  int subMenu(const char *header, const char *items[], unsigned int numItems, int index = 0);
+  int subMenu(const char *header, const char *items[], const size_t numItems, int index = 0);
 
   /**
    * @brief Similar to `menu` but does not have icons and also has a header
@@ -282,10 +286,13 @@ public:
    * @param numItems The number of items
    * @return The selected option
    */
-  int subMenu(const char *header, const String items[], unsigned int numItems, int index = 0);
+  int subMenu(const char *header, const String items[], const size_t numItems, int index = 0);
 
-  int searchList(const char *header, const char *items[], unsigned int numItems, bool caseSensitive = true);
-  int searchList(const char *header, const String items[], unsigned int numItems, bool caseSensitive = true);
+
+  int carousel(const unsigned char* icons[], const size_t numItems);
+
+  int searchList(const char *header, const char *items[], const size_t numItems, bool caseSensitive = true);
+  int searchList(const char *header, const String items[], const size_t numItems, bool caseSensitive = true);
 
   /**
    * @brief A grid of icons, you select one of them
@@ -294,7 +301,7 @@ public:
    * @param numItems number of bitmaps
    * @return
    */
-  int gridMenu(const unsigned char *icons[], int numItems);
+  int gridMenu(const unsigned char *icons[], const size_t numItems);
 
   /**
    * @brief Radio buttons!!!
@@ -305,7 +312,7 @@ public:
    *
    * @return the selected item
    */
-  int radioSelect(const char *header, const char *items[], const unsigned int numItems);
+  int radioSelect(const char *header, const char *items[], const size_t numItems);
 
   struct checkBox {
     const char *name;
@@ -319,7 +326,7 @@ public:
    * @param items An array of `checkBox`. checkBox::isChecked is changed if the item is selected
    * @param numItems Number of items in the providied array
    */
-  void checkBoxes(const char *header, checkBox items[], const unsigned int numItems);
+  void checkBoxes(const char *header, checkBox items[], const size_t numItems);
 
   /**
    * @brief Shows a list of items that you can scroll through
@@ -334,7 +341,7 @@ public:
 
   enum class ListType { NONE, BULLET, NUMBER };
 
-  void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], unsigned int numItems,
+  void listBrowser(const char *header, const unsigned char iconBitmap[], const char *items[], const size_t numItems,
                    ListType displayType = ListType::NUMBER);
 
   /**
@@ -347,7 +354,7 @@ public:
    * @param displayType Can be Bullet points, numbers or nothing
    * @param font the font to use
    */
-  void listBrowser(const char *header, const unsigned char iconBitmap[], const String items[], unsigned int numItems,
+  void listBrowser(const char *header, const unsigned char iconBitmap[], const String items[], const size_t numItems,
                    ListType displayType = ListType::NUMBER);
 
   void progressBar(int progress, const char *header, const unsigned char *bitmap[] = NULL);
