@@ -25,11 +25,18 @@ elif [[ "$1" == "e_upload" ]]; then
     echo "Error: Please specify an example to upload."
     exit 1
   fi
+elif [[ "$1" == "compiledb" ]]; then
+  if [[ -n "$2" ]]; then
+    pio ci -l src/ -c platformio.ini "$2" -e cc --keep-build-dir
+  else
+    echo "Error: Please specify the file"
+  fi 
 else
   echo "Usage: $0 command [argument]"
   echo "  cpp: Rename .ino examples to .cpp"
   echo "  ino: Rename .cpp examples to .ino"
   echo "  e_run [example]: Compile all examples or specify in the second argument"
   echo "  e_upload <example>: Compile & upload example (specify in the second argument)"
+  echo "  compiledb <file>: Generate compile_commands.json for the file"
   exit 1
 fi
