@@ -1,8 +1,15 @@
 #pragma once
 
 #include "actions.h"
-#include <Arduino.h>
+// #include <Arduino.h>
 #include <U8g2lib.h>
+#include <functional>
+
+#if defined(ARDUINO)
+#include <Arduino.h> // If on Arduino, use the built-in String
+#else
+#include "MyString.h" // If on Raspberry Pi, use our wrapper
+#endif
 
 // Pager Navigation types
 #define PAGE_DOT_NAV 1
@@ -34,11 +41,11 @@ private:
    */
   U8G2 *u8g2;
 
-  void search(const char *items[], const size_t numItems, const char *query, const char *result[],
-              size_t *resultCount, size_t resultIndices[], bool caseSensitive = true);
+  void search(const char *items[], const size_t numItems, const char *query, const char *result[], size_t *resultCount,
+              size_t resultIndices[], bool caseSensitive = true);
 
-  void search(const String items[], const size_t numItems, const char *query, const char *result[],
-              size_t *resultCount, size_t resultIndices[], bool caseSensitive = true);
+  void search(const String items[], const size_t numItems, const char *query, const char *result[], size_t *resultCount,
+              size_t resultIndices[], bool caseSensitive = true);
 
   const uint8_t *font;
 
@@ -288,8 +295,7 @@ public:
    */
   int subMenu(const char *header, const String items[], const size_t numItems, int index = 0);
 
-
-  int carousel(const unsigned char* icons[], const size_t numItems);
+  int carousel(const unsigned char *icons[], const size_t numItems);
 
   int searchList(const char *header, const char *items[], const size_t numItems, bool caseSensitive = true);
   int searchList(const char *header, const String items[], const size_t numItems, bool caseSensitive = true);
