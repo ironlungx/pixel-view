@@ -1,13 +1,35 @@
 #include "pixelView.h"
 #include "actions.h"
-#include "clib/u8g2.h"
-#include <Arduino.h>
 #include <U8g2lib.h>
-#include <cstdio>
 
-// U8G2 *PixelView::u8g2 = nullptr;
-// PixelView::InputFuncType PixelView::doInput = nullptr;
-// std::function<void(int32_t)> PixelView::doDelay = nullptr;
+#ifndef ARDUINO
+#include <chrono>
+#include <cstdio>
+#include <string.h>
+
+long map(long x, long in_min, long in_max, long out_min, long out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+/**
+ * @brief Replacement for Arduino's millis() function
+ * @return Milliseconds since program start
+ */
+inline unsigned long millis() {
+  static auto start = std::chrono::steady_clock::now();
+  auto now = std::chrono::steady_clock::now();
+  return std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+}
+
+/**
+ * @brief Replacement for Arduino's micros() function
+ * @return Microseconds since program start
+ */
+inline unsigned long micros() {
+  static auto start = std::chrono::steady_clock::now();
+  auto now = std::chrono::steady_clock::now();
+  return std::chrono::duration_cast<std::chrono::microseconds>(now - start).count();
+}
+#endif
 
 // Implement the constructor
 PixelView::PixelView(U8G2 *display, std::function<ActionType(void)> inputFunction, std::function<void(int)> delayer,
@@ -370,20 +392,20 @@ String PixelView::Keyboard::numPad(const String message, bool isEmptyAllowed, co
 
     ActionType action = p->doInput();
     if (action == ActionType::UP) {
-      indexY = max(0, indexY - 1);
+      indexY = std::max(0, indexY - 1);
     }
     if (action == ActionType::DOWN) {
-      int newY = min(3, indexY + 1);
+      int newY = std::min(3, indexY + 1);
       if (strcmp(numpad[newY][indexX], " ") > 0) indexY = newY;
     }
     if (action == ActionType::LEFT) {
-      // indexX = max(0, indexX - 1);
-      int newX = max(0, indexX - 1);
+      // indexX = std::max(0, indexX - 1);
+      int newX = std::max(0, indexX - 1);
 
       if (strcmp(numpad[indexY][newX], " ") > 0) indexX = newX;
     }
     if (action == ActionType::RIGHT) {
-      indexX = min(2, indexX + 1);
+      indexX = std::min(2, indexX + 1);
     }
     if (action == ActionType::SEL) {
       while (p->doInput() != ActionType::NONE) {
@@ -429,19 +451,19 @@ String PixelView::Keyboard::fullKeyboard(const String &message, bool isEmptyAllo
     action = p->doInput();
     switch (action) {
     case ActionType::LEFT: {
-      pointerX = max(0, pointerX - 1);
+      pointerX = std::max(0, pointerX - 1);
       break;
     }
     case ActionType::RIGHT: {
-      pointerX = min(9, pointerX + 1);
+      pointerX = std::min(9, pointerX + 1);
       break;
     }
     case ActionType::DOWN: {
-      pointerY = min(3, pointerY + 1);
+      pointerY = std::min(3, pointerY + 1);
       break;
     }
     case ActionType::UP: {
-      pointerY = max(0, pointerY - 1);
+      pointerY = std::max(0, pointerY - 1);
       break;
     }
     default:
@@ -558,7 +580,7 @@ PixelView::Pager::Pager(PixelView *px, const size_t numPages, PixelView::Pager::
 PixelView::Pager::PagerActionType PixelView::Pager::render() {
   static bool navEnabled = true;
   size_t originalIndex;
-  
+
   // Skip disabled pages when starting render
   if (!pages[index].enabled) {
     // Find next enabled page
@@ -566,7 +588,7 @@ PixelView::Pager::PagerActionType PixelView::Pager::render() {
     do {
       index = (index + 1) % numPages;
     } while (!pages[index].enabled && index != originalIndex);
-    
+
     // If we wrapped around and found no enabled pages, return
     if (!pages[index].enabled) {
       return PagerActionType::CONTINUE;
@@ -575,7 +597,7 @@ PixelView::Pager::PagerActionType PixelView::Pager::render() {
 
   px->u8g2->clearBuffer();
   PagerActionType returnVal = this->pages[index].renderer(this->px->u8g2, this->px, this->pages, this->numPages);
-  
+
   switch (returnVal) {
   case PagerActionType::DISABLE_NAV: {
     navEnabled = false;
@@ -591,7 +613,8 @@ PixelView::Pager::PagerActionType PixelView::Pager::render() {
   } break;
   case PagerActionType::EXIT: {
     //////////////////////////////////////////////////////////////////////////////////////////
-    // EXIT should be handled by the top level function (aka whoever is calling this function)
+    // EXIT should be handled by the top level function (aka whoever is calling
+    // this function)
     //////////////////////////////////////////////////////////////////////////////////////////
   } break;
   }
@@ -606,7 +629,7 @@ PixelView::Pager::PagerActionType PixelView::Pager::render() {
     px->u8g2->setFont(u8g2_font_unifont_t_75);
     String str;
     for (int i = 0; i < numPages; i++) {
-      if (pages[i].enabled) {  // Only show dots for enabled pages
+      if (pages[i].enabled) { // Only show dots for enabled pages
         str += ((i == index) ? "●" : "○");
       }
     }
@@ -667,7 +690,7 @@ PixelView::Pager::PagerActionType PixelView::Pager::render() {
     do {
       index = (index == 0) ? numPages - 1 : index - 1;
     } while (!pages[index].enabled && index != originalIndex);
-    
+
     while (px->doInput() != ActionType::NONE)
       this->px->doDelay(100);
   }
@@ -677,7 +700,7 @@ PixelView::Pager::PagerActionType PixelView::Pager::render() {
     do {
       index = (index + 1) % numPages;
     } while (!pages[index].enabled && index != originalIndex);
-    
+
     while (px->doInput() != ActionType::NONE)
       this->px->doDelay(100);
   }
@@ -837,7 +860,7 @@ int PixelView::subMenu(const char *header, const char *items[], const size_t num
 
     u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
 
-    int scrollbarH = max(1, (int)(64 / numItems));
+    int scrollbarH = std::max(1, (int)(64 / numItems));
     int scrollbarY;
 
     // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
@@ -907,7 +930,7 @@ int PixelView::subMenu(const char *header, const String items[], const size_t nu
 
     u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
 
-    int scrollbarH = max(2, (int)(64 / numItems));
+    int scrollbarH = std::max(2, (int)(64 / numItems));
     int scrollbarY;
 
     // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
@@ -933,7 +956,11 @@ int PixelView::subMenu(const char *header, const String items[], const size_t nu
 }
 void PixelView::search(const char *items[], const size_t numItems, const char *query, const char *result[],
                        size_t *resultCount, size_t resultIndices[], bool caseSensitive) {
-  auto cmpstr = caseSensitive ? strstr : strcasestr;
+  // Declare the function pointer type
+  typedef const char *(*StrStrFunc)(const char *, const char *);
+
+  // Cast the functions to the correct type
+  StrStrFunc cmpstr = caseSensitive ? (StrStrFunc)strstr : (StrStrFunc)strcasestr;
 
   *resultCount = 0;
   for (unsigned int i = 0; i < numItems; i++) {
@@ -947,7 +974,11 @@ void PixelView::search(const char *items[], const size_t numItems, const char *q
 
 void PixelView::search(const String items[], const size_t numItems, const char *query, const char *result[],
                        size_t *resultCount, size_t resultIndices[], bool caseSensitive) {
-  auto cmpstr = caseSensitive ? strstr : strcasestr;
+  // Declare the function pointer type
+  typedef const char *(*StrStrFunc)(const char *, const char *);
+
+  // Cast the functions to the correct type
+  StrStrFunc cmpstr = caseSensitive ? (StrStrFunc)strstr : (StrStrFunc)strcasestr;
 
   *resultCount = 0;
   for (unsigned int i = 0; i < numItems; i++) {
@@ -1009,7 +1040,8 @@ int PixelView::searchList(const char *header, const char *items[], const size_t 
       }
 
       if (c == 1) {
-        query = kbd.fullKeyboard("", true, query); // TODO: add keyboard fuction here
+        query = kbd.fullKeyboard("", true,
+                                 query); // TODO: add keyboard fuction here
         search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
         itemSelected = 0;
       }
@@ -1020,7 +1052,8 @@ int PixelView::searchList(const char *header, const char *items[], const size_t 
     }
 
     if (resultCount == 0) {
-      query = kbd.fullKeyboard(String("No results for: " + query), true, query); // TODO: add keyboard fuction here
+      query = kbd.fullKeyboard(String("No results for: " + query), true,
+                               query); // TODO: add keyboard fuction here
       search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
       continue;
     }
@@ -1037,7 +1070,7 @@ int PixelView::searchList(const char *header, const char *items[], const size_t 
 
     u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
 
-    int scrollbarH = max(2, (int)(64 / resultCount));
+    int scrollbarH = std::max(2, (int)(64 / resultCount));
     int scrollbarY;
 
     // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
@@ -1114,7 +1147,8 @@ int PixelView::searchList(const char *header, const String items[], const size_t
       }
 
       if (c == 1) {
-        query = kbd.fullKeyboard("", true, query); // TODO: add keyboard fuction here
+        query = kbd.fullKeyboard("", true,
+                                 query); // TODO: add keyboard fuction here
         search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
         itemSelected = 0;
       }
@@ -1125,7 +1159,8 @@ int PixelView::searchList(const char *header, const String items[], const size_t
     }
 
     if (resultCount == 0) {
-      query = kbd.fullKeyboard(String("No results for: " + query), true, query); // TODO: add keyboard fuction here
+      query = kbd.fullKeyboard(String("No results for: " + query), true,
+                               query); // TODO: add keyboard fuction here
       search(items, numItems, query.c_str(), result, &resultCount, resultIndices, caseSensitive);
       continue;
     }
@@ -1142,7 +1177,7 @@ int PixelView::searchList(const char *header, const String items[], const size_t
 
     u8g2->drawXBMP(120, 0, 8, 64, bitmap_scrollbar_background_full);
 
-    int scrollbarH = max(2, (int)(64 / resultCount));
+    int scrollbarH = std::max(2, (int)(64 / resultCount));
     int scrollbarY;
 
     // if ((64 / numItems * itemSelected) < 0) scrollbarY = 1;
@@ -1248,7 +1283,8 @@ int PixelView::radioSelect(const char *header, const char *items[], const size_t
                   header); // Draw header at the top
 
     u8g2->setDrawColor(2);
-    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
+    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1,
+                   0); // Draw background for header
     u8g2->setDrawColor(1);
 
     // Draw menu items
@@ -1340,7 +1376,8 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const size_t nu
                   header); // Draw header at the top
 
     u8g2->setDrawColor(2);
-    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
+    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1,
+                   0); // Draw background for header
     u8g2->setDrawColor(1);
 
     // Draw menu items
@@ -1390,7 +1427,10 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const size_t nu
           startIndex = selected;
         }
       }
+      while (doInput() != ActionType::NONE)
+        doDelay(20);
       break;
+
     case ActionType::DOWN:
       if (selected < numItems - 1) {
         selected++;
@@ -1398,17 +1438,24 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const size_t nu
           startIndex = selected - itemsPerPage + 1;
         }
       }
+      while (doInput() != ActionType::NONE)
+        doDelay(20);
       break;
+
     case ActionType::SEL: {
       unsigned long startTime = millis();
 
       while (doInput() == ActionType::SEL)
-        ;
-      if ((millis() - startTime) > 1700) {
+        doDelay(20);
+
+      if ((millis() - startTime) > 1700) { // Long press
         return;
       } else {
         items[selected].isChecked = !items[selected].isChecked;
       }
+
+      while (doInput() == ActionType::SEL)
+        doDelay(20);
     } break;
     }
 
@@ -1416,14 +1463,10 @@ void PixelView::checkBoxes(const char *header, checkBox items[], const size_t nu
     if (startIndex > numItems - itemsPerPage) {
       startIndex = numItems - itemsPerPage;
     }
+
     if (startIndex < 0) {
       startIndex = 0;
     }
-
-    // Wait for button release
-    do {
-      action = doInput();
-    } while (action != ActionType::NONE);
   }
 }
 
@@ -1441,7 +1484,8 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
   int listHeight = displayHeight - headerHeight; // List area excluding the header
   int visibleItems = listHeight / fontHeight;    // How many list items fit below the header
 
-  // Adjust visibleItems if there are fewer items than what can fit on the screen
+  // Adjust visibleItems if there are fewer items than what can fit on the
+  // screen
   if (visibleItems > numItems) {
     visibleItems = numItems;
   }
@@ -1461,7 +1505,8 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
                   header); // Draw header at the top
 
     u8g2->setDrawColor(2);
-    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
+    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1,
+                   0); // Draw background for header
     u8g2->setDrawColor(1);
     if (iconBitmap != NULL) u8g2->drawXBMP(headerX - 16 - 2, 0, 16, 16, iconBitmap);
 
@@ -1501,7 +1546,8 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
       }
 
       // Render list items below the header (start from headerHeight)
-      u8g2->drawStr(5, headerHeight + (i + 1) * u8g2->getMaxCharHeight(), buf); // Display each item
+      u8g2->drawStr(5, headerHeight + (i + 1) * u8g2->getMaxCharHeight(),
+                    buf); // Display each item
     }
 
     u8g2->sendBuffer(); // Send buffer to the display
@@ -1545,7 +1591,8 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
   int listHeight = displayHeight - headerHeight; // List area excluding the header
   int visibleItems = listHeight / fontHeight;    // How many list items fit below the header
 
-  // Adjust visibleItems if there are fewer items than what can fit on the screen
+  // Adjust visibleItems if there are fewer items than what can fit on the
+  // screen
   if (visibleItems > numItems) {
     visibleItems = numItems;
   }
@@ -1565,7 +1612,8 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
                   header); // Draw header at the top
 
     u8g2->setDrawColor(2);
-    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1, 0); // Draw background for header
+    u8g2->drawRBox(headerX, 1, headerWidth + 4, headerHeight + 1,
+                   0); // Draw background for header
     u8g2->setDrawColor(1);
     if (iconBitmap != NULL) u8g2->drawXBMP(headerX - 16 - 2, 0, 16, 16, iconBitmap);
 
@@ -1605,7 +1653,8 @@ void PixelView::listBrowser(const char *header, const unsigned char iconBitmap[]
       }
 
       // Render list items below the header (start from headerHeight)
-      u8g2->drawStr(5, headerHeight + (i + 1) * u8g2->getMaxCharHeight(), buf); // Display each item
+      u8g2->drawStr(5, headerHeight + (i + 1) * u8g2->getMaxCharHeight(),
+                    buf); // Display each item
     }
 
     u8g2->sendBuffer(); // Send buffer to the display
